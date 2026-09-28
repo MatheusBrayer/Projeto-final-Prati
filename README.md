@@ -7,7 +7,7 @@ Sistema desenvolvido como projeto final do curso **+PraTi**, utilizando arquitet
 ### Frontend
 
 * React
-* JavaScript / TypeScript
+* JavaScript
 * Vite
 
 ### Backend
