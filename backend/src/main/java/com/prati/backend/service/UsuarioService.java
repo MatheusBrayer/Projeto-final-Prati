@@ -1,3 +1,4 @@
+
 package com.prati.backend.service;
 
 import com.prati.backend.dto.UsuarioRequest;
@@ -29,62 +30,94 @@ public class UsuarioService {
         }
     }
 
-    public void validarPerfil (
+    public void validarPerfil(
             Perfil perfil,
-            Long oficinaID,
-            Long clienteID
+            Long oficinaId,
+            Long clienteId
     ) {
         switch (perfil) {
             case ADM_SISTEMA -> {
-                if (oficinaID != null || clienteID != null) {
-                    throw new IllegalArgumentException("Administrador do sistema não pode estar vinculado a uma oficina nem a um cliente");
+                if (oficinaId != null || clienteId != null) {
+                    throw new IllegalArgumentException(
+                            "Administrador do sistema não pode estar vinculado a uma oficina nem a um cliente."
+                    );
                 }
             }
 
             case ADM_OFICINA -> {
-                if (oficinaID == null || clienteID != null) {
-                    throw new IllegalArgumentException("Administrador da oficina deve estar vinculado a uma oficina e não pode estar vinculado a um cliente.");
+                if (oficinaId == null || clienteId != null) {
+                    throw new IllegalArgumentException(
+                            "Administrador da oficina deve estar vinculado a uma oficina e não pode estar vinculado a um cliente."
+                    );
                 }
             }
 
             case CLIENTE -> {
-                if (oficinaID != null || clienteID == null) {
-                    throw new IllegalArgumentException("Cliente não deve estar vinculado a uma oficina e deve estar vinculado a um cliente.");
+                if (oficinaId != null || clienteId == null) {
+                    throw new IllegalArgumentException(
+                            "Cliente não deve estar vinculado diretamente a uma oficina e deve estar vinculado a um cliente."
+                    );
                 }
             }
         }
     }
 
-    public Usuario cadastrarUsuario (UsuarioRequest request) {
-
-        validarEmail(request.getEmail());
-
-        validarPerfil(
-                request.getPerfil(),
-                request.getOficinaId(),
-                request.getClienteId()
+    public Usuario cadastrarAdministradorOficina(
+            UsuarioRequest request,
+            Long oficinaId
+    ) {
+        return cadastrarUsuario(
+                request,
+                Perfil.ADM_OFICINA,
+                oficinaId,
+                null
         );
+    }
+
+    public Usuario cadastrarUsuarioCliente(
+            UsuarioRequest request,
+            Long clienteId
+    ) {
+        return cadastrarUsuario(
+                request,
+                Perfil.CLIENTE,
+                null,
+                clienteId
+        );
+    }
+
+    private Usuario cadastrarUsuario(
+            UsuarioRequest request,
+            Perfil perfil,
+            Long oficinaId,
+            Long clienteId
+    ) {
+        validarEmail(request.getEmail());
+        validarPerfil(perfil, oficinaId, clienteId);
 
         Usuario novoUsuario = new Usuario();
         novoUsuario.setEmail(request.getEmail());
         novoUsuario.setSenha(request.getSenha());
-        novoUsuario.setPerfil(request.getPerfil());
+        novoUsuario.setPerfil(perfil);
 
-        if (request.getOficinaId() != null) {
-            Oficina oficina = oficinaRepository.findById(request.getOficinaId())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Oficina não encontrada!"));
+        if (oficinaId != null) {
+            Oficina oficina = oficinaRepository.findById(oficinaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Oficina não encontrada."
+                    ));
 
             novoUsuario.setOficina(oficina);
         }
 
-        if (request.getClienteId() != null) {
-            Cliente cliente = clienteRepository.findById(request.getClienteId())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente não encontrado!"));
+        if (clienteId != null) {
+            Cliente cliente = clienteRepository.findById(clienteId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Cliente não encontrado."
+                    ));
 
             novoUsuario.setCliente(cliente);
         }
 
         return usuarioRepository.save(novoUsuario);
     }
-
 }

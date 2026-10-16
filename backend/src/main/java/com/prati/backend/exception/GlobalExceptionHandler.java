@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.prati.backend.exception.DadosInvalidosException;
 
 import java.util.Map;
 
@@ -36,4 +37,19 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT)
                 .body(resposta);
     }
+
+
+    @ExceptionHandler(DadosInvalidosException.class)
+    public ResponseEntity<Map<String, String>> tratarDadosInvalidos(
+            DadosInvalidosException exception) {
+
+        Map<String, String> resposta = Map.of(
+                "erro", exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(resposta);
+    }
+
 }

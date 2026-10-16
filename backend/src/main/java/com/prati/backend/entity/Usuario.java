@@ -15,7 +15,7 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, unique = true)
     private String email;
 
     @Column(nullable = false, length = 100)
@@ -24,6 +24,9 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private Perfil perfil;
+
+    @Column(nullable = false)
+    private Boolean ativo = true;
 
     @ManyToOne
     @JoinColumn(name = "oficina_id")
