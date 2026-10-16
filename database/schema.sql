@@ -85,3 +85,27 @@ CREATE TABLE ordens_servico (
             'CANCELADA'
         ))
 );
+
+CREATE TABLE usuarios (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    perfil VARCHAR(30) NOT NULL,
+    oficina_id BIGINT,
+    cliente_id BIGINT UNIQUE,
+
+    CONSTRAINT fk_usuario_oficina
+        FOREIGN KEY (oficina_id)
+        REFERENCES oficinas(id),
+
+    CONSTRAINT fk_usuario_cliente
+        FOREIGN KEY (cliente_id)
+        REFERENCES clientes(id),
+
+    CONSTRAINT ck_usuario_perfil
+        CHECK (perfil IN (
+            'ADMIN_SISTEMA',
+            'ADMIN_OFICINA',
+            'CLIENTE'
+        ))
+);
