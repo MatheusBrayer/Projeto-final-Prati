@@ -1,4 +1,3 @@
-
 package com.prati.backend.service;
 
 import com.prati.backend.dto.UsuarioRequest;
@@ -32,6 +31,9 @@ class UsuarioServiceTest {
 
     @Mock
     private ClienteRepository clienteRepository;
+
+    @Mock
+    private SenhaService senhaService;
 
     @InjectMocks
     private UsuarioService usuarioService;
@@ -242,6 +244,9 @@ class UsuarioServiceTest {
         when(oficinaRepository.findById(1L))
                 .thenReturn(java.util.Optional.of(oficina));
 
+        when(senhaService.criptografar(request.getSenha()))
+                .thenReturn("hash-da-senha");
+
         when(usuarioRepository.save(any(Usuario.class)))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
 
@@ -252,7 +257,9 @@ class UsuarioServiceTest {
         assertEquals(Perfil.ADM_OFICINA, resultado.getPerfil());
         assertEquals(oficina, resultado.getOficina());
         assertNull(resultado.getCliente());
+        assertEquals("hash-da-senha", resultado.getSenha());
 
+        verify(senhaService).criptografar(request.getSenha());
         verify(oficinaRepository).findById(1L);
         verify(usuarioRepository).save(any(Usuario.class));
     }
@@ -274,6 +281,9 @@ class UsuarioServiceTest {
         when(usuarioRepository.save(any(Usuario.class)))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
 
+        when(senhaService.criptografar(request.getSenha()))
+                .thenReturn("hash-da-senha");
+
         Usuario resultado =
                 usuarioService.cadastrarUsuarioCliente(request, 1L);
 
@@ -281,7 +291,9 @@ class UsuarioServiceTest {
         assertEquals(Perfil.CLIENTE, resultado.getPerfil());
         assertEquals(cliente, resultado.getCliente());
         assertNull(resultado.getOficina());
+        assertEquals("hash-da-senha", resultado.getSenha());
 
+        verify(senhaService).criptografar(request.getSenha());
         verify(clienteRepository).findById(1L);
         verify(usuarioRepository).save(any(Usuario.class));
     }
