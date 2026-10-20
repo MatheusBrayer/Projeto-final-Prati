@@ -21,6 +21,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final OficinaRepository oficinaRepository;
     private final ClienteRepository clienteRepository;
+    private final SenhaService senhaService;
 
     public void validarEmail(String email) {
         if (usuarioRepository.existsByEmail(email)) {
@@ -97,7 +98,9 @@ public class UsuarioService {
 
         Usuario novoUsuario = new Usuario();
         novoUsuario.setEmail(request.getEmail());
-        novoUsuario.setSenha(request.getSenha());
+        novoUsuario.setSenha(
+                senhaService.criptografar(request.getSenha())
+        );
         novoUsuario.setPerfil(perfil);
 
         if (oficinaId != null) {
