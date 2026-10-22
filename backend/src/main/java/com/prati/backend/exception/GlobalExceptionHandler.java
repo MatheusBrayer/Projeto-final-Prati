@@ -52,4 +52,19 @@ public class GlobalExceptionHandler {
                 .body(resposta);
     }
 
+
+    @ExceptionHandler(AutenticacaoException.class)
+    public ResponseEntity<Map<String, String>> tratarFalhaAutenticacao(
+            AutenticacaoException exception) {
+
+        Map<String, String> resposta = Map.of(
+                "erro", exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(resposta);
+    }
+
+
 }
