@@ -34,4 +34,12 @@ public class JwtService {
                 .compact();
     }
 
+    public String extrairEmailDoToken(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+    }
 }
