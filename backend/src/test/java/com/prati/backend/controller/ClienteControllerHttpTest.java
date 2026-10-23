@@ -3,6 +3,8 @@ package com.prati.backend.controller;
 
 import com.prati.backend.entity.Cliente;
 import com.prati.backend.exception.DadosInvalidosException;
+import com.prati.backend.repository.UsuarioRepository;
+import com.prati.backend.security.JwtService;
 import com.prati.backend.service.ClienteService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,12 @@ class ClienteControllerHttpTest {
 
     @MockitoBean
     private ClienteService clienteService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UsuarioRepository usuarioRepository;
 
     @Test
     void deveRetornar201QuandoClienteForCadastrado() throws Exception {
