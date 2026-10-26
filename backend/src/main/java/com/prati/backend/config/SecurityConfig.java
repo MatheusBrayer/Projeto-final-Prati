@@ -31,12 +31,29 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) ->
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/login"
-                        ).permitAll()
-                        .anyRequest().authenticated())
+                        // Login público.
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+
+                        // Cadastro de clientes exclusivo para administradores de oficina.
+                        .requestMatchers(HttpMethod.POST, "/api/clientes")
+                        .hasRole("ADM_OFICINA")
+
+                        /*
+                         * TODO(Card 7): Ao adicionar novos endpoints, definir regras
+                         * específicas por perfil antes da regra geral.
+                         *
+                         * ADM_SISTEMA: recursos administrativos do sistema.
+                         * ADM_OFICINA: recursos limitados à própria oficina.
+                         * CLIENTE: recursos limitados aos próprios dados.
+                         *
+                         * A autorização por perfil não substitui a validação de
+                         * propriedade dos dados no serviço.
+                         */
+
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

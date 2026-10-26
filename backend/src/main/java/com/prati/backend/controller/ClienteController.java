@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -16,11 +18,17 @@ public class ClienteController {
 
     private final ClienteService clienteService;
 
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Cliente cadastrarCliente(
             @Valid @RequestBody ClienteRequest request) {
 
-        return clienteService.cadastrarCliente(request);
+        String emailUsuario = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        return clienteService.cadastrarCliente(request, emailUsuario);
     }
+
 }
