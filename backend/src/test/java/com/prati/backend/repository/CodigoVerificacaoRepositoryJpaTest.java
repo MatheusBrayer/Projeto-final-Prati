@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,20 +36,24 @@ class CodigoVerificacaoRepositoryJpaTest {
 
         codigoVerificacaoRepository.save(codigo);
 
-        Optional<CodigoVerificacao> resultado =
+        List<CodigoVerificacao> resultado =
                 codigoVerificacaoRepository
-                        .findByEmailAndUtilizadoFalse("cliente@email.com");
+                        .findAllByEmailAndUtilizadoFalse("cliente@email.com");
 
-        assertThat(resultado).isPresent();
-        assertThat(resultado.get().getCodigoHash()).isEqualTo("hash-de-teste");
-        assertThat(resultado.get().getUtilizado()).isFalse();
+        assertThat(resultado).hasSize(1);
+
+        assertThat(resultado.get(0).getCodigoHash())
+                .isEqualTo("hash-de-teste");
+
+        assertThat(resultado.get(0).getUtilizado())
+                .isFalse();
     }
 
     @Test
     void deveRetornarVazioQuandoNaoExistirCodigoNaoUtilizado() {
-        Optional<CodigoVerificacao> resultado =
+        List<CodigoVerificacao> resultado =
                 codigoVerificacaoRepository
-                        .findByEmailAndUtilizadoFalse("inexistente@email.com");
+                        .findAllByEmailAndUtilizadoFalse("cliente@email.com");
 
         assertThat(resultado).isEmpty();
     }
@@ -65,10 +70,41 @@ class CodigoVerificacaoRepositoryJpaTest {
 
         codigoVerificacaoRepository.save(codigo);
 
-        Optional<CodigoVerificacao> resultado =
+        List<CodigoVerificacao> resultado =
                 codigoVerificacaoRepository
-                        .findByEmailAndUtilizadoFalse("cliente@email.com");
+                        .findAllByEmailAndUtilizadoFalse("cliente@email.com");
 
         assertThat(resultado).isEmpty();
+    }
+
+    @Test
+    void deveRetornarTodosOsCodigosNaoUtilizadosDoEmail() {
+        CodigoVerificacao primeiro = new CodigoVerificacao();
+        primeiro.setEmail("cliente@email.com");
+        primeiro.setCodigoHash("hash-1");
+        primeiro.setCriadoEm(LocalDateTime.now());
+        primeiro.setExpiraEm(LocalDateTime.now().plusMinutes(5));
+        primeiro.setTentativas(0);
+        primeiro.setUtilizado(false);
+
+        CodigoVerificacao segundo = new CodigoVerificacao();
+        segundo.setEmail("cliente@email.com");
+        segundo.setCodigoHash("hash-2");
+        segundo.setCriadoEm(LocalDateTime.now());
+        segundo.setExpiraEm(LocalDateTime.now().plusMinutes(5));
+        segundo.setTentativas(0);
+        segundo.setUtilizado(false);
+
+        codigoVerificacaoRepository.save(primeiro);
+        codigoVerificacaoRepository.save(segundo);
+
+        List<CodigoVerificacao> resultado =
+                codigoVerificacaoRepository
+                        .findAllByEmailAndUtilizadoFalse("cliente@email.com");
+
+        assertThat(resultado).hasSize(2);
+        assertThat(resultado)
+                .extracting(CodigoVerificacao::getCodigoHash)
+                .containsExactlyInAnyOrder("hash-1", "hash-2");
     }
 }

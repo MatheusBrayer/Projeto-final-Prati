@@ -3,10 +3,10 @@ package com.prati.backend.repository;
 import com.prati.backend.entity.CodigoVerificacao;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import java.util.List;
 
 public interface CodigoVerificacaoRepository
         extends JpaRepository<CodigoVerificacao, Long> {
 
-    Optional<CodigoVerificacao> findByEmailAndUtilizadoFalse(String email);
+    List<CodigoVerificacao> findAllByEmailAndUtilizadoFalse(String email);
 }
