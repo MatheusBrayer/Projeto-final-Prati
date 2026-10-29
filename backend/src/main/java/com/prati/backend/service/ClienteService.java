@@ -8,6 +8,7 @@ import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.validation.CpfValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.prati.backend.exception.RecursoNaoEncontradoException;
 
 @Service
 @RequiredArgsConstructor
@@ -37,5 +38,10 @@ public class ClienteService {
         return clienteRepository.save(novoCliente);
     }
 
-
+    public Cliente buscarClientePorEmail(String email) {
+        return clienteRepository.findByEmail(email)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Cliente não encontrado."
+                ));
+    }
 }

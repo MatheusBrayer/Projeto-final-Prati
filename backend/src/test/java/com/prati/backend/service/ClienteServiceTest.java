@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.prati.backend.exception.RecursoNaoEncontradoException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -107,6 +109,32 @@ class ClienteServiceTest {
         );
 
         verifyNoInteractions(clienteRepository);
+    }
+
+    @Test
+    void deveBuscarClientePeloEmail() {
+        Cliente cliente = new Cliente();
+        cliente.setEmail("cliente@email.com");
+
+        when(clienteRepository.findByEmail("cliente@email.com"))
+                .thenReturn(Optional.of(cliente));
+
+        Cliente resultado =
+                clienteService.buscarClientePorEmail("cliente@email.com");
+
+        assertEquals("cliente@email.com", resultado.getEmail());
+        verify(clienteRepository).findByEmail("cliente@email.com");
+    }
+
+    @Test
+    void deveLancarExcecaoQuandoClienteNaoForEncontradoPeloEmail() {
+        when(clienteRepository.findByEmail("inexistente@email.com"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                RecursoNaoEncontradoException.class,
+                () -> clienteService.buscarClientePorEmail("inexistente@email.com")
+        );
     }
 
 }
