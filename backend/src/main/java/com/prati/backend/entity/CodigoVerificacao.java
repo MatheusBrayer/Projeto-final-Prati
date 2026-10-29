@@ -1,6 +1,7 @@
 
 package com.prati.backend.entity;
 
+import com.prati.backend.enums.FinalidadeCodigoVerificacao;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,10 @@ public class CodigoVerificacao {
 
     @Column(nullable = false, length = 150)
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private FinalidadeCodigoVerificacao finalidade;
 
     @Column(nullable = false, length = 100)
     private String codigoHash;
