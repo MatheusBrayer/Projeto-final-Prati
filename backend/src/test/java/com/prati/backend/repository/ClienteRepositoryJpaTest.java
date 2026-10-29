@@ -48,4 +48,31 @@ class ClienteRepositoryJpaTest {
 
         assertThat(resultado).isEmpty();
     }
+
+    @Test
+    void deveBuscarClientePeloEmail() {
+        Cliente cliente = new Cliente();
+        cliente.setNome("Maria da Silva");
+        cliente.setCpf("52998224725");
+        cliente.setTelefone("51988888888");
+        cliente.setEmail("maria@email.com");
+        cliente.setEndereco("Rua das Flores, 123");
+
+        clienteRepository.save(cliente);
+
+        Optional<Cliente> resultado =
+                clienteRepository.findByEmail("maria@email.com");
+
+        assertThat(resultado).isPresent();
+        assertThat(resultado.get().getNome()).isEqualTo("Maria da Silva");
+        assertThat(resultado.get().getEmail()).isEqualTo("maria@email.com");
+    }
+
+    @Test
+    void deveRetornarVazioQuandoEmailNaoExistir() {
+        Optional<Cliente> resultado =
+                clienteRepository.findByEmail("inexistente@email.com");
+
+        assertThat(resultado).isEmpty();
+    }
 }
