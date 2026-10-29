@@ -125,4 +125,23 @@ class ClienteControllerIntegrationTest {
                 .andExpect(jsonPath("$.erro")
                         .value("Já existe um cliente cadastrado com este CPF."));
     }
+
+    @Test
+    void deveRetornar400QuandoEmailNaoForInformado() throws Exception {
+
+        String json = """
+        {
+            "nome": "Maria da Silva",
+            "cpf": "52998224725",
+            "telefone": "51988888888",
+            "endereco": "Rua das Flores, 123"
+        }
+        """;
+
+        mockMvc.perform(post("/api/clientes")
+                        .with(SecurityMockMvcRequestPostProcessors.user("teste"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
+    }
 }

@@ -23,6 +23,7 @@ public class ClienteRequest {
     @Size(max = 20, message = "O telefone deve ter no máximo 20 caracteres.")
     private String telefone;
 
+    @NotBlank(message = "O e-mail é obrigatório.")
     @Email(message = "Informe um e-mail válido.")
     @Size(max = 150, message = "O e-mail deve ter no máximo 150 caracteres.")
     private String email;
