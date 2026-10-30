@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -173,4 +174,203 @@ class CodigoVerificacaoServiceTest {
         verify(codigoVerificacaoRepository)
                 .save(any(CodigoVerificacao.class));
     }
+
+
+    @Test
+    void deveValidarCodigoCorretoEInutilizaLo() {
+        String email = "cliente@exemplo.com";
+        String codigo = "123456";
+
+        CodigoVerificacao codigoVerificacao = criarCodigoPendente(email);
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                ))
+                .thenReturn(Optional.of(codigoVerificacao));
+
+        when(senhaService.comparar(codigo, "hash-do-codigo"))
+                .thenReturn(true);
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                codigo,
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        assertTrue(resultado);
+        assertTrue(codigoVerificacao.getUtilizado());
+
+        verify(codigoVerificacaoRepository).save(codigoVerificacao);
+    }
+
+    @Test
+    void deveIncrementarTentativasQuandoCodigoEstiverIncorreto() {
+        String email = "cliente@exemplo.com";
+
+        CodigoVerificacao codigoVerificacao = criarCodigoPendente(email);
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                ))
+                .thenReturn(Optional.of(codigoVerificacao));
+
+        when(senhaService.comparar("000000", "hash-do-codigo"))
+                .thenReturn(false);
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                "000000",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        assertFalse(resultado);
+        assertEquals(1, codigoVerificacao.getTentativas());
+        assertFalse(codigoVerificacao.getUtilizado());
+
+        verify(codigoVerificacaoRepository).save(codigoVerificacao);
+    }
+
+    @Test
+    void deveBloquearCodigoNaQuintaTentativaIncorreta() {
+        String email = "cliente@exemplo.com";
+
+        CodigoVerificacao codigoVerificacao = criarCodigoPendente(email);
+        codigoVerificacao.setTentativas(4);
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                ))
+                .thenReturn(Optional.of(codigoVerificacao));
+
+        when(senhaService.comparar("000000", "hash-do-codigo"))
+                .thenReturn(false);
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                "000000",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        assertFalse(resultado);
+        assertEquals(5, codigoVerificacao.getTentativas());
+        assertTrue(codigoVerificacao.getUtilizado());
+
+        verify(codigoVerificacaoRepository).save(codigoVerificacao);
+    }
+
+    @Test
+    void naoDeveValidarCodigoExpirado() {
+        String email = "cliente@exemplo.com";
+
+        CodigoVerificacao codigoVerificacao = criarCodigoPendente(email);
+        codigoVerificacao.setExpiraEm(LocalDateTime.now().minusMinutes(1));
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                ))
+                .thenReturn(Optional.of(codigoVerificacao));
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                "123456",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        assertFalse(resultado);
+
+        assertTrue(codigoVerificacao.getUtilizado());
+
+        verify(codigoVerificacaoRepository).save(codigoVerificacao);
+
+        verify(senhaService, never()).comparar(anyString(), anyString());
+    }
+
+    @Test
+    void deveRetornarFalseQuandoNaoExistirCodigoPendente() {
+        String email = "cliente@exemplo.com";
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                ))
+                .thenReturn(Optional.empty());
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                "123456",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        assertFalse(resultado);
+
+        verify(senhaService, never()).comparar(anyString(), anyString());
+    }
+
+    private CodigoVerificacao criarCodigoPendente(String email) {
+        CodigoVerificacao codigo = new CodigoVerificacao();
+
+        codigo.setEmail(email);
+        codigo.setFinalidade(FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO);
+        codigo.setCodigoHash("hash-do-codigo");
+        codigo.setCriadoEm(LocalDateTime.now());
+        codigo.setExpiraEm(LocalDateTime.now().plusMinutes(5));
+        codigo.setTentativas(0);
+        codigo.setUtilizado(false);
+
+        return codigo;
+    }
+
+    @Test
+    void naoDeveValidarCodigoComFinalidadeDiferente() {
+        String email = "cliente@exemplo.com";
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.REDEFINICAO_SENHA
+                ))
+                .thenReturn(Optional.empty());
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                "123456",
+                FinalidadeCodigoVerificacao.REDEFINICAO_SENHA
+        );
+
+        assertFalse(resultado);
+
+        verify(senhaService, never()).comparar(anyString(), anyString());
+    }
+
+    @Test
+    void naoDeveValidarCodigoJaUtilizado() {
+        String email = "cliente@exemplo.com";
+
+        when(codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                ))
+                .thenReturn(Optional.empty());
+
+        boolean resultado = codigoVerificacaoService.validarCodigo(
+                email,
+                "123456",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        assertFalse(resultado);
+
+        verify(senhaService, never()).comparar(anyString(), anyString());
+    }
+
 }

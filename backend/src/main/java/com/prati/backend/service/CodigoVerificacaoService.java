@@ -18,6 +18,8 @@ public class CodigoVerificacaoService {
 
     private static final int VALIDADE_MINUTOS = 5;
 
+    private static final int MAX_TENTATIVAS = 5;
+
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final CodigoVerificacaoRepository codigoVerificacaoRepository;
@@ -61,5 +63,61 @@ public class CodigoVerificacaoService {
         codigoVerificacaoRepository.save(novoCodigo);
 
         return codigo;
+    }
+
+    @Transactional
+    public boolean validarCodigo(
+            String email,
+            String codigoInformado,
+            FinalidadeCodigoVerificacao finalidade
+    ) {
+        CodigoVerificacao codigoVerificacao =
+                codigoVerificacaoRepository
+                        .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                                email,
+                                finalidade
+                        )
+                        .orElse(null);
+
+        if (codigoVerificacao == null) {
+            return false;
+        }
+
+        LocalDateTime agora = LocalDateTime.now();
+
+        if (!agora.isBefore(codigoVerificacao.getExpiraEm())) {
+            codigoVerificacao.setUtilizado(true);
+            codigoVerificacaoRepository.save(codigoVerificacao);
+
+            return false;
+        }
+
+        if (codigoVerificacao.getTentativas() >= MAX_TENTATIVAS) {
+            return false;
+        }
+
+        boolean codigoCorreto = senhaService.comparar(
+                codigoInformado,
+                codigoVerificacao.getCodigoHash()
+        );
+
+        if (!codigoCorreto) {
+            codigoVerificacao.setTentativas(
+                    codigoVerificacao.getTentativas() + 1
+            );
+
+            if (codigoVerificacao.getTentativas() >= MAX_TENTATIVAS) {
+                codigoVerificacao.setUtilizado(true);
+            }
+
+            codigoVerificacaoRepository.save(codigoVerificacao);
+
+            return false;
+        }
+
+        codigoVerificacao.setUtilizado(true);
+        codigoVerificacaoRepository.save(codigoVerificacao);
+
+        return true;
     }
 }

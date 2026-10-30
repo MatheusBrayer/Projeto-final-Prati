@@ -9,7 +9,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
@@ -144,6 +144,53 @@ class CodigoVerificacaoRepositoryJpaTest {
         assertThat(resultado)
                 .extracting(CodigoVerificacao::getCodigoHash)
                 .containsExactly("hash-primeiro-acesso");
+    }
+
+    @Test
+    void deveBuscarCodigoNaoUtilizadoMaisRecente() {
+        CodigoVerificacao primeiro = criarCodigo(
+                "cliente@email.com",
+                "hash-antigo",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO,
+                false
+        );
+
+        primeiro.setCriadoEm(LocalDateTime.now().minusMinutes(2));
+
+        CodigoVerificacao segundo = criarCodigo(
+                "cliente@email.com",
+                "hash-recente",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO,
+                false
+        );
+
+        segundo.setCriadoEm(LocalDateTime.now());
+
+        codigoVerificacaoRepository.save(primeiro);
+        codigoVerificacaoRepository.save(segundo);
+
+        Optional<CodigoVerificacao> resultado =
+                codigoVerificacaoRepository
+                        .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                                "cliente@email.com",
+                                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                        );
+
+        assertThat(resultado).isPresent();
+        assertThat(resultado.get().getCodigoHash())
+                .isEqualTo("hash-recente");
+    }
+
+    @Test
+    void deveRetornarVazioQuandoNaoExistirCodigoPendenteParaBuscaMaisRecente() {
+        Optional<CodigoVerificacao> resultado =
+                codigoVerificacaoRepository
+                        .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                                "cliente@email.com",
+                                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+                        );
+
+        assertThat(resultado).isEmpty();
     }
 
     private CodigoVerificacao criarCodigo(
