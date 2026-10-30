@@ -28,6 +28,9 @@ class CodigoVerificacaoServiceTest {
     @Mock
     private SenhaService senhaService;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private CodigoVerificacaoService codigoVerificacaoService;
 
@@ -74,6 +77,12 @@ class CodigoVerificacaoServiceTest {
         assertFalse(salvo.getUtilizado());
 
         verify(senhaService).criptografar(codigo);
+
+        verify(emailService).enviarEmail(
+                eq(email),
+                eq("Código de verificação - AutoGestão Pro"),
+                contains(codigo)
+        );
     }
 
     @Test

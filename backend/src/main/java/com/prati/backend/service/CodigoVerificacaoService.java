@@ -24,6 +24,7 @@ public class CodigoVerificacaoService {
 
     private final CodigoVerificacaoRepository codigoVerificacaoRepository;
     private final SenhaService senhaService;
+    private final EmailService emailService;
 
     @Transactional
     public String gerarCodigo(
@@ -61,6 +62,23 @@ public class CodigoVerificacaoService {
         novoCodigo.setUtilizado(false);
 
         codigoVerificacaoRepository.save(novoCodigo);
+
+        emailService.enviarEmail(
+                email,
+                "Código de verificação - AutoGestão Pro",
+                """
+                Olá!
+
+                Seu código de verificação é: %s
+
+                Ele é válido por %d minutos.
+
+                Se você não solicitou este código, ignore este e-mail.
+
+                Atenciosamente,
+                Equipe AutoGestão Pro
+                """.formatted(codigo, VALIDADE_MINUTOS)
+        );
 
         return codigo;
     }
