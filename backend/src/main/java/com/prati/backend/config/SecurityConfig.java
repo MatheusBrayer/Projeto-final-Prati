@@ -34,7 +34,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/auth/login"
+                                "/api/auth/login",
+                                "/api/auth/primeiro-acesso/solicitar",
+                                "/api/auth/primeiro-acesso/confirmar"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(

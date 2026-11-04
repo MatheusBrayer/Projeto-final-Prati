@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.prati.backend.service.AuthService;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:security_test;DB_CLOSE_DELAY=-1",
@@ -41,6 +42,9 @@ class SecurityConfigIntegrationTest {
 
     @MockitoBean
     private JavaMailSender mailSender;
+
+    @MockitoBean
+    private AuthService authService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -133,5 +137,32 @@ class SecurityConfigIntegrationTest {
                             }
                             """))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void devePermitirSolicitarPrimeiroAcessoSemToken() throws Exception {
+        mockMvc.perform(post("/api/auth/primeiro-acesso/solicitar")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                            "email": "cliente@email.com",
+                            "senha": "Senha123!"
+                        }
+                        """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void devePermitirConfirmarPrimeiroAcessoSemToken() throws Exception {
+        mockMvc.perform(post("/api/auth/primeiro-acesso/confirmar")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                            "email": "cliente@email.com",
+                            "codigo": "123456",
+                            "senha": "Senha123!"
+                        }
+                        """))
+                .andExpect(status().isOk());
     }
 }

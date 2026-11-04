@@ -111,6 +111,9 @@ public class CodigoVerificacaoService {
         }
 
         if (codigoVerificacao.getTentativas() >= MAX_TENTATIVAS) {
+            codigoVerificacao.setUtilizado(true);
+            codigoVerificacaoRepository.save(codigoVerificacao);
+
             return false;
         }
 
