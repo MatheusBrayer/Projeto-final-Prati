@@ -39,11 +39,10 @@ class AuthControllerTest {
     void deveRetornar200QuandoSolicitarPrimeiroAcesso() throws Exception {
 
         String json = """
-                {
-                    "email": "cliente@email.com",
-                    "senha": "Senha123!"
-                }
-                """;
+        {
+            "email": "cliente@email.com"
+        }
+        """;
 
         mockMvc.perform(post("/api/auth/primeiro-acesso/solicitar")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -58,11 +57,10 @@ class AuthControllerTest {
     void deveRetornar400QuandoEmailForInvalidoNaSolicitacao() throws Exception {
 
         String json = """
-                {
-                    "email": "email-invalido",
-                    "senha": "Senha123!"
-                }
-                """;
+        {
+            "email": "email-invalido"
+        }
+        """;
 
         mockMvc.perform(post("/api/auth/primeiro-acesso/solicitar")
                         .contentType(MediaType.APPLICATION_JSON)

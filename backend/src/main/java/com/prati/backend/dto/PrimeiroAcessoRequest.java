@@ -15,6 +15,4 @@ public class PrimeiroAcessoRequest {
     @Size(max = 150, message = "O e-mail deve ter no máximo 150 caracteres.")
     private String email;
 
-    @NotBlank(message = "A senha é obrigatória.")
-    private String senha;
 }

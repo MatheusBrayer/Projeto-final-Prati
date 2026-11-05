@@ -149,7 +149,6 @@ class AuthServiceTest {
 
         PrimeiroAcessoRequest request = new PrimeiroAcessoRequest();
         request.setEmail("  CLIENTE@TESTE.COM  ");
-        request.setSenha("senha123");
 
         Cliente cliente = new Cliente();
         cliente.setId(10L);
@@ -174,7 +173,6 @@ class AuthServiceTest {
 
         PrimeiroAcessoRequest request = new PrimeiroAcessoRequest();
         request.setEmail("usuario@teste.com");
-        request.setSenha("senha123");
 
         when(usuarioRepository.existsByEmail("usuario@teste.com"))
                 .thenReturn(true);
@@ -192,7 +190,6 @@ class AuthServiceTest {
 
         PrimeiroAcessoRequest request = new PrimeiroAcessoRequest();
         request.setEmail("desconhecido@teste.com");
-        request.setSenha("senha123");
 
         when(usuarioRepository.existsByEmail("desconhecido@teste.com"))
                 .thenReturn(false);
