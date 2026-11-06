@@ -5,7 +5,7 @@ import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
 import com.prati.backend.repository.UsuarioRepository;
 import com.prati.backend.service.ClienteService;
-import org.junit.jupiter.api.MediaType;
+import org.springframework.http.MediaType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -60,7 +60,7 @@ class SecurityConfigIntegrationTest {
         Usuario usuario = new Usuario();
         usuario.setEmail("teste@autogestao.com");
         usuario.setSenha("senha-de-teste");
-        usuario.setPerfil(Perfil.CLIENTE);
+        usuario.setPerfil(Perfil.ADM_OFICINA);
         usuario.setAtivo(true);
 
         usuarioRepository.save(usuario);
@@ -82,7 +82,7 @@ class SecurityConfigIntegrationTest {
 
         mockMvc.perform(post("/api/clientes")
                         .header("Authorization", "Bearer " + token)
-                        .contentType(String.valueOf(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
                               "nome": "Cliente Teste",
@@ -144,10 +144,9 @@ class SecurityConfigIntegrationTest {
         mockMvc.perform(post("/api/auth/primeiro-acesso/solicitar")
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content("""
-                        {
-                            "email": "cliente@email.com",
-                            "senha": "Senha123!"
-                        }
+                                {
+                                    "email": "cliente@email.com"
+                                }
                         """))
                 .andExpect(status().isOk());
     }
@@ -164,5 +163,59 @@ class SecurityConfigIntegrationTest {
                         }
                         """))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void deveRetornar403QuandoClienteTentarCadastrarOutroCliente() throws Exception {
+        Usuario usuario = new Usuario();
+        usuario.setEmail("cliente@autogestao.com");
+        usuario.setSenha("senha-de-teste");
+        usuario.setPerfil(Perfil.CLIENTE);
+        usuario.setAtivo(true);
+
+        usuarioRepository.save(usuario);
+
+        String token = jwtService.gerarToken(usuario.getEmail());
+
+        mockMvc.perform(post("/api/clientes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                            "nome": "Cliente Teste",
+                            "cpf": "12345678909",
+                            "telefone": "51999999999",
+                            "email": "cliente@teste.com",
+                            "endereco": "Rua de Teste"
+                        }
+                        """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deveRetornar403QuandoAdministradorSistemaTentarCadastrarCliente() throws Exception {
+        Usuario usuario = new Usuario();
+        usuario.setEmail("admin@autogestao.com");
+        usuario.setSenha("senha-de-teste");
+        usuario.setPerfil(Perfil.ADM_SISTEMA);
+        usuario.setAtivo(true);
+
+        usuarioRepository.save(usuario);
+
+        String token = jwtService.gerarToken(usuario.getEmail());
+
+        mockMvc.perform(post("/api/clientes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                            "nome": "Cliente Teste",
+                            "cpf": "12345678909",
+                            "telefone": "51999999999",
+                            "email": "cliente@teste.com",
+                            "endereco": "Rua de Teste"
+                        }
+                        """))
+                .andExpect(status().isForbidden());
     }
 }

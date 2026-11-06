@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import com.prati.backend.dto.ClienteConsultaResponse;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -22,5 +23,10 @@ public class ClienteController {
             @Valid @RequestBody ClienteRequest request) {
 
         return clienteService.cadastrarCliente(request);
+    }
+
+    @GetMapping("/buscar-por-cpf/{cpf}")
+    public ClienteConsultaResponse buscarPorCpf(@PathVariable String cpf) {
+        return clienteService.buscarPorCpf(cpf);
     }
 }
