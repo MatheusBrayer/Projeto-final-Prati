@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard/Dashboard';
@@ -60,6 +61,7 @@ function App() {
       </div>
     </Router>
   );
+
 }
 
 export default App;
