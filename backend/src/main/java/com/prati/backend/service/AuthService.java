@@ -15,6 +15,7 @@ import com.prati.backend.enums.FinalidadeCodigoVerificacao;
 import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.dto.ConfirmarPrimeiroAcessoRequest;
 import org.springframework.transaction.annotation.Transactional;
+import com.prati.backend.enums.Perfil;
 
 import java.util.Locale;
 
@@ -29,6 +30,7 @@ public class AuthService {
     private final CodigoVerificacaoService codigoVerificacaoService;
     private final UsuarioService usuarioService;
 
+
     public LoginResponse login(LoginRequest request) {
 
         Usuario usuario = usuarioRepository
@@ -37,18 +39,14 @@ public class AuthService {
                         "E-mail ou senha inválidos."
                 ));
 
-        if (!senhaService.comparar(
+        if (!Boolean.TRUE.equals(usuario.getAtivo())
+                || usuario.getSenha() == null
+                || !senhaService.comparar(
                 request.getSenha(),
                 usuario.getSenha()
         )) {
             throw new AutenticacaoException(
                     "E-mail ou senha inválidos."
-            );
-        }
-
-        if (!Boolean.TRUE.equals(usuario.getAtivo())) {
-            throw new AutenticacaoException(
-                    "Usuário inativo."
             );
         }
 
@@ -63,50 +61,96 @@ public class AuthService {
         );
     }
 
+
+
     public void solicitarPrimeiroAcesso(PrimeiroAcessoRequest request) {
 
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
 
-        // Se já existe uma conta, não envia outro código.
-        if (usuarioRepository.existsByEmail(email)) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElse(null);
+
+        // Cenário 1: já existe um usuário.
+        if (usuario != null) {
+
+            // Somente administradores de oficina que ainda
+            // não ativaram a conta podem fazer primeiro acesso.
+            boolean administradorPendente =
+                    usuario.getPerfil() == Perfil.ADM_OFICINA
+                            && !Boolean.TRUE.equals(usuario.getAtivo())
+                            && usuario.getSenha() == null
+                            && usuario.getOficina() != null;
+
+            if (!administradorPendente) {
+                return;
+            }
+
+            codigoVerificacaoService.gerarCodigo(
+                    email,
+                    FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+            );
+
             return;
         }
 
-        // Procura um cliente cadastrado com esse e-mail.
+        // Cenário 2: cliente cadastrado, mas sem usuário.
         Cliente cliente = clienteRepository.findByEmail(email)
                 .orElse(null);
 
-        // Se não encontrar, encerra sem revelar essa informação.
         if (cliente == null) {
             return;
         }
 
-        // Gera e envia o código de primeiro acesso.
         codigoVerificacaoService.gerarCodigo(
                 email,
                 FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
         );
     }
 
+
+
     @Transactional(noRollbackFor = AutenticacaoException.class)
-    public void confirmarPrimeiroAcesso(ConfirmarPrimeiroAcessoRequest request) {
+    public void confirmarPrimeiroAcesso(
+            ConfirmarPrimeiroAcessoRequest request) {
 
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
 
-        // Impede a criação de uma segunda conta para o mesmo e-mail.
-        if (usuarioRepository.existsByEmail(email)) {
-            throw new AutenticacaoException(
-                    "Não foi possível concluir o primeiro acesso. Verifique os dados e tente novamente."
-            );
+        String mensagemErro =
+                "Não foi possível concluir o primeiro acesso. " +
+                        "Verifique os dados e tente novamente.";
+
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElse(null);
+
+        Cliente cliente = null;
+
+        // Cenário 1: usuário existente.
+        if (usuario != null) {
+
+            boolean administradorPendente =
+                    usuario.getPerfil() == Perfil.ADM_OFICINA
+                            && !Boolean.TRUE.equals(usuario.getAtivo())
+                            && usuario.getSenha() == null
+                            && usuario.getOficina() != null;
+
+            if (!administradorPendente) {
+                throw new AutenticacaoException(mensagemErro);
+            }
+
+        } else {
+
+            // Cenário 2: cliente ainda sem usuário.
+            cliente = clienteRepository.findByEmail(email)
+                    .orElseThrow(() ->
+                            new AutenticacaoException(mensagemErro)
+                    );
         }
 
-        // Verifica se existe um cliente cadastrado com esse e-mail.
-        Cliente cliente = clienteRepository.findByEmail(email)
-                .orElseThrow(() -> new AutenticacaoException(
-                        "Não foi possível concluir o primeiro acesso. Verifique os dados e tente novamente."
-                ));
-
-        // Valida o código enviado para o e-mail.
+        // Ambos os cenários exigem um código válido.
         boolean codigoValido = codigoVerificacaoService.validarCodigo(
                 email,
                 request.getCodigo(),
@@ -114,16 +158,28 @@ public class AuthService {
         );
 
         if (!codigoValido) {
-            throw new AutenticacaoException(
-                    "Não foi possível concluir o primeiro acesso. Verifique os dados e tente novamente."
-            );
+            throw new AutenticacaoException(mensagemErro);
         }
 
-        // Cria a conta vinculada ao cliente existente.
-        usuarioService.cadastrarUsuarioCliente(
-                email,
-                request.getSenha(),
-                cliente.getId()
-        );
+        if (usuario != null) {
+
+            // Ativa a conta do administrador existente.
+            usuario.setSenha(senhaService.criptografar(
+                    request.getSenha()
+            ));
+            usuario.setAtivo(true);
+
+            usuarioRepository.save(usuario);
+
+        } else {
+
+            // Mantém o cadastro original dos clientes.
+            usuarioService.cadastrarUsuarioCliente(
+                    email,
+                    request.getSenha(),
+                    cliente.getId()
+            );
+        }
     }
+
 }

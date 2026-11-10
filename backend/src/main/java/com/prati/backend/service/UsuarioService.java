@@ -119,6 +119,7 @@ public class UsuarioService {
                 senhaService.criptografar(request.getSenha())
         );
         novoUsuario.setPerfil(perfil);
+        novoUsuario.setAtivo(true);
 
         if (oficinaId != null) {
             Oficina oficina = oficinaRepository.findById(oficinaId)

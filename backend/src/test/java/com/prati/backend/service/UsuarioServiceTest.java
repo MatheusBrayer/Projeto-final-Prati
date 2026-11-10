@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -292,6 +292,7 @@ class UsuarioServiceTest {
         assertEquals(cliente, resultado.getCliente());
         assertNull(resultado.getOficina());
         assertEquals("hash-da-senha", resultado.getSenha());
+        assertTrue(resultado.getAtivo());
 
         verify(senhaService).criptografar(request.getSenha());
         verify(clienteRepository).findById(1L);

@@ -11,6 +11,12 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import jakarta.servlet.DispatcherType;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -22,6 +28,7 @@ public class SecurityConfig {
             throws Exception {
 
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -31,6 +38,10 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) ->
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
+
+                        // Somente o administrador do sistema cadastra oficinas.
+                        .requestMatchers(HttpMethod.POST, "/api/oficinas")
+                        .hasRole("ADM_SISTEMA")
 
                         // Endpoints públicos de autenticação.
                         .requestMatchers(
@@ -48,6 +59,8 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/clientes/buscar-por-cpf/**")
                                 .hasRole("ADM_OFICINA")
 
+                                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+
                                 // Demais endpoints exigem autenticação.
                                 .anyRequest().authenticated()
                 )
@@ -58,4 +71,34 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Origem permitida: frontend React com Vite.
+        configuration.setAllowedOrigins(
+                List.of("http://localhost:5173")
+        );
+
+        // Métodos HTTP permitidos.
+        configuration.setAllowedMethods(
+                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+        );
+
+        // Cabeçalhos permitidos.
+        configuration.setAllowedHeaders(
+                List.of("Authorization", "Content-Type")
+        );
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
+
 }

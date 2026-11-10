@@ -22,6 +22,7 @@ import com.prati.backend.entity.Cliente;
 import com.prati.backend.enums.FinalidadeCodigoVerificacao;
 import com.prati.backend.dto.PrimeiroAcessoRequest;
 import com.prati.backend.dto.ConfirmarPrimeiroAcessoRequest;
+import com.prati.backend.entity.Oficina;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -122,6 +123,7 @@ class AuthServiceTest {
         verify(jwtService, never()).gerarToken(anyString());
     }
 
+
     @Test
     void naoDeveRealizarLoginComUsuarioInativo() {
         usuario.setAtivo(false);
@@ -133,16 +135,17 @@ class AuthServiceTest {
         when(usuarioRepository.findByEmail("usuario@teste.com"))
                 .thenReturn(Optional.of(usuario));
 
-        when(senhaService.comparar("senha-correta", "hash-bcrypt"))
-                .thenReturn(true);
-
         assertThrows(
                 AutenticacaoException.class,
                 () -> authService.login(request)
         );
 
+        verify(senhaService, never())
+                .comparar(anyString(), anyString());
+
         verify(jwtService, never()).gerarToken(anyString());
     }
+
 
     @Test
     void deveSolicitarPrimeiroAcessoParaClienteCadastrado() {
@@ -154,8 +157,8 @@ class AuthServiceTest {
         cliente.setId(10L);
         cliente.setEmail("cliente@teste.com");
 
-        when(usuarioRepository.existsByEmail("cliente@teste.com"))
-                .thenReturn(false);
+        when(usuarioRepository.findByEmail("cliente@teste.com"))
+                .thenReturn(Optional.empty());
 
         when(clienteRepository.findByEmail("cliente@teste.com"))
                 .thenReturn(Optional.of(cliente));
@@ -174,8 +177,8 @@ class AuthServiceTest {
         PrimeiroAcessoRequest request = new PrimeiroAcessoRequest();
         request.setEmail("usuario@teste.com");
 
-        when(usuarioRepository.existsByEmail("usuario@teste.com"))
-                .thenReturn(true);
+        when(usuarioRepository.findByEmail("usuario@teste.com"))
+                .thenReturn(Optional.of(usuario));
 
         authService.solicitarPrimeiroAcesso(request);
 
@@ -191,8 +194,8 @@ class AuthServiceTest {
         PrimeiroAcessoRequest request = new PrimeiroAcessoRequest();
         request.setEmail("desconhecido@teste.com");
 
-        when(usuarioRepository.existsByEmail("desconhecido@teste.com"))
-                .thenReturn(false);
+        when(usuarioRepository.findByEmail("desconhecido@teste.com"))
+                .thenReturn(Optional.empty());
 
         when(clienteRepository.findByEmail("desconhecido@teste.com"))
                 .thenReturn(Optional.empty());
@@ -217,8 +220,8 @@ class AuthServiceTest {
         cliente.setId(10L);
         cliente.setEmail("cliente@teste.com");
 
-        when(usuarioRepository.existsByEmail("cliente@teste.com"))
-                .thenReturn(false);
+        when(usuarioRepository.findByEmail("cliente@teste.com"))
+                .thenReturn(Optional.empty());
 
         when(clienteRepository.findByEmail("cliente@teste.com"))
                 .thenReturn(Optional.of(cliente));
@@ -252,8 +255,8 @@ class AuthServiceTest {
         cliente.setId(10L);
         cliente.setEmail("cliente@teste.com");
 
-        when(usuarioRepository.existsByEmail("cliente@teste.com"))
-                .thenReturn(false);
+        when(usuarioRepository.findByEmail("cliente@teste.com"))
+                .thenReturn(Optional.empty());
 
         when(clienteRepository.findByEmail("cliente@teste.com"))
                 .thenReturn(Optional.of(cliente));
@@ -272,5 +275,145 @@ class AuthServiceTest {
         verify(usuarioService, never())
                 .cadastrarUsuarioCliente(anyString(), anyString(), anyLong());
     }
+
+
+    @Test
+    void deveEnviarCodigoParaAdministradorDeOficinaPendente() {
+
+        PrimeiroAcessoRequest request = new PrimeiroAcessoRequest();
+        request.setEmail("  GESTOR@TESTE.COM  ");
+
+        Oficina oficina = new Oficina();
+        oficina.setId(2L);
+
+        Usuario administrador = new Usuario();
+        administrador.setId(4L);
+        administrador.setEmail("gestor@teste.com");
+        administrador.setPerfil(Perfil.ADM_OFICINA);
+        administrador.setAtivo(false);
+        administrador.setSenha(null);
+        administrador.setOficina(oficina);
+
+        when(usuarioRepository.findByEmail("gestor@teste.com"))
+                .thenReturn(Optional.of(administrador));
+
+        authService.solicitarPrimeiroAcesso(request);
+
+        verify(codigoVerificacaoService).gerarCodigo(
+                "gestor@teste.com",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        verify(clienteRepository, never()).findByEmail(anyString());
+    }
+
+
+    @Test
+    void deveAtivarAdministradorDeOficinaComCodigoValido() {
+
+        ConfirmarPrimeiroAcessoRequest request =
+                new ConfirmarPrimeiroAcessoRequest();
+
+        request.setEmail("gestor@teste.com");
+        request.setCodigo("123456");
+        request.setSenha("senhaSegura123");
+
+        Oficina oficina = new Oficina();
+        oficina.setId(2L);
+
+        Usuario administrador = new Usuario();
+        administrador.setId(4L);
+        administrador.setEmail("gestor@teste.com");
+        administrador.setPerfil(Perfil.ADM_OFICINA);
+        administrador.setAtivo(false);
+        administrador.setSenha(null);
+        administrador.setOficina(oficina);
+
+        when(usuarioRepository.findByEmail("gestor@teste.com"))
+                .thenReturn(Optional.of(administrador));
+
+        when(codigoVerificacaoService.validarCodigo(
+                "gestor@teste.com",
+                "123456",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        )).thenReturn(true);
+
+        when(senhaService.criptografar("senhaSegura123"))
+                .thenReturn("hash-bcrypt");
+
+        when(usuarioRepository.save(administrador))
+                .thenReturn(administrador);
+
+        authService.confirmarPrimeiroAcesso(request);
+
+        assertTrue(administrador.getAtivo());
+        assertEquals("hash-bcrypt", administrador.getSenha());
+        assertEquals(Perfil.ADM_OFICINA, administrador.getPerfil());
+        assertEquals(2L, administrador.getOficina().getId());
+
+        verify(usuarioRepository).save(administrador);
+
+        verify(usuarioService, never())
+                .cadastrarUsuarioCliente(
+                        anyString(),
+                        anyString(),
+                        anyLong()
+                );
+
+        verify(clienteRepository, never())
+                .findByEmail(anyString());
+    }
+
+
+    @Test
+    void naoDeveAtivarAdministradorDeOficinaComCodigoInvalido() {
+
+        ConfirmarPrimeiroAcessoRequest request =
+                new ConfirmarPrimeiroAcessoRequest();
+
+        request.setEmail("gestor@teste.com");
+        request.setCodigo("999999");
+        request.setSenha("senhaSegura123");
+
+        Oficina oficina = new Oficina();
+        oficina.setId(2L);
+
+        Usuario administrador = new Usuario();
+        administrador.setId(4L);
+        administrador.setEmail("gestor@teste.com");
+        administrador.setPerfil(Perfil.ADM_OFICINA);
+        administrador.setAtivo(false);
+        administrador.setSenha(null);
+        administrador.setOficina(oficina);
+
+        when(usuarioRepository.findByEmail("gestor@teste.com"))
+                .thenReturn(Optional.of(administrador));
+
+        when(codigoVerificacaoService.validarCodigo(
+                "gestor@teste.com",
+                "999999",
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        )).thenReturn(false);
+
+        assertThrows(
+                AutenticacaoException.class,
+                () -> authService.confirmarPrimeiroAcesso(request)
+        );
+
+        assertFalse(administrador.getAtivo());
+        assertNull(administrador.getSenha());
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+
+        verify(senhaService, never()).criptografar(anyString());
+
+        verify(usuarioService, never())
+                .cadastrarUsuarioCliente(
+                        anyString(),
+                        anyString(),
+                        anyLong()
+                );
+    }
+
 }
 
