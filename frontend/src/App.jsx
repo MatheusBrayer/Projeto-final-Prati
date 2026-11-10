@@ -1,11 +1,12 @@
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes.jsx";
 
 function App() {
-  console.log("Olá mundo!")
-  const mensagem = "Olá mundo!"
-
   return (
-    <h1>{mensagem}</h1>
-  )
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

@@ -1,39 +1,55 @@
-
 package com.prati.backend.service;
 
 import com.prati.backend.dto.ClienteRequest;
 import com.prati.backend.entity.Cliente;
+import com.prati.backend.entity.ClienteOficina;
+import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
 import com.prati.backend.exception.ConflitoCadastroException;
 import com.prati.backend.exception.DadosInvalidosException;
 import com.prati.backend.exception.RecursoNaoEncontradoException;
+import com.prati.backend.repository.ClienteOficinaRepository;
 import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.repository.UsuarioRepository;
 import com.prati.backend.validation.CpfValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.prati.backend.dto.ClienteConsultaResponse;
+import java.util.Locale;
+import java.util.Optional;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final ClienteOficinaRepository clienteOficinaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final ClienteOficinaService clienteOficinaService;
 
     @Transactional
-    public Cliente cadastrarCliente(ClienteRequest request, String emailUsuario) {
+    public Cliente cadastrarCliente(
+            ClienteRequest request,
+            String emailUsuario
+    ) {
 
-        Usuario administrador = usuarioRepository.findByEmail(emailUsuario)
-                .orElseThrow(() ->
-                        new RecursoNaoEncontradoException(
-                                "Usuário autenticado não encontrado."
-                        )
-                );
+        // Normaliza e valida o CPF.
+        String cpf = request.getCpf().trim();
 
+        if (!CpfValidator.isValid(cpf)) {
+            throw new DadosInvalidosException("O CPF informado é inválido.");
+        }
+
+        // Identifica o administrador autenticado.
+        Usuario administrador = usuarioRepository
+                .findByEmail(emailUsuario)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Usuário autenticado não encontrado."
+                ));
+
+        // Garante que somente administradores de oficina realizem o cadastro.
         if (administrador.getPerfil() != Perfil.ADM_OFICINA
                 || administrador.getOficina() == null) {
             throw new AccessDeniedException(
@@ -41,33 +57,105 @@ public class ClienteService {
             );
         }
 
-        if (!CpfValidator.isValid(request.getCpf())) {
-            throw new DadosInvalidosException(
-                    "O CPF informado é inválido."
-            );
+        Oficina oficina = administrador.getOficina();
+
+        // Normaliza o email do cliente.
+        String emailCliente = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        // Procura o cliente global pelo CPF.
+        Optional<Cliente> clienteExistente =
+                clienteRepository.findByCpf(cpf);
+
+        Cliente cliente;
+
+        if (clienteExistente.isPresent()) {
+
+            cliente = clienteExistente.get();
+
+            // Verifica se o email pertence a outro cliente.
+            Optional<Cliente> clientePorEmail =
+                    clienteRepository.findByEmail(emailCliente);
+
+            if (clientePorEmail.isPresent()
+                    && !clientePorEmail.get().getId().equals(cliente.getId())) {
+                throw new ConflitoCadastroException(
+                        "O e-mail informado já está vinculado a outro cliente."
+                );
+            }
+
+            // Atualiza o cadastro global.
+            atualizarDadosCliente(cliente, request, cpf, emailCliente);
+
+        } else {
+
+            // Impede que um email já cadastrado seja reutilizado.
+            if (clienteRepository.existsByEmail(emailCliente)) {
+                throw new ConflitoCadastroException(
+                        "O e-mail informado já pertence a outro cliente."
+                );
+            }
+
+            cliente = new Cliente();
+            atualizarDadosCliente(cliente, request, cpf, emailCliente);
         }
 
-        if (clienteRepository.existsByCpf(request.getCpf())) {
-            throw new ConflitoCadastroException(
-                    "Já existe um cliente cadastrado com este CPF."
-            );
+        cliente = clienteRepository.save(cliente);
+
+        // Cria o vínculo somente se ainda não existir.
+        boolean vinculoExistente =
+                clienteOficinaRepository.existsByClienteIdAndOficinaId(
+                        cliente.getId(),
+                        oficina.getId()
+                );
+
+        if (!vinculoExistente) {
+            ClienteOficina vinculo = new ClienteOficina();
+            vinculo.setCliente(cliente);
+            vinculo.setOficina(oficina);
+
+            clienteOficinaRepository.save(vinculo);
         }
 
-        Cliente novoCliente = new Cliente();
-        novoCliente.setNome(request.getNome());
-        novoCliente.setCpf(request.getCpf());
-        novoCliente.setTelefone(request.getTelefone());
-        novoCliente.setEmail(request.getEmail());
-        novoCliente.setEndereco(request.getEndereco());
+        return cliente;
+    }
 
-        Cliente clienteSalvo = clienteRepository.save(novoCliente);
+    private void atualizarDadosCliente(
+            Cliente cliente,
+            ClienteRequest request,
+            String cpf,
+            String email
+    ) {
+        cliente.setNome(request.getNome());
+        cliente.setCpf(cpf);
+        cliente.setTelefone(request.getTelefone());
+        cliente.setEmail(email);
+        cliente.setEndereco(request.getEndereco());
+    }
 
-        clienteOficinaService.vincularClienteOficina(
-                clienteSalvo.getId(),
-                administrador.getOficina().getId()
-        );
+    public Cliente buscarClientePorEmail(String email) {
+        return clienteRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException(
+                                "Cliente não encontrado."
+                        ));
+    }
 
-        return clienteSalvo;
+    @Transactional(readOnly = true)
+    public ClienteConsultaResponse buscarPorCpf(String cpf) {
+
+        String cpfNormalizado = cpf.trim();
+
+        if (!CpfValidator.isValid(cpfNormalizado)) {
+            throw new DadosInvalidosException("O CPF informado é inválido.");
+        }
+
+        Cliente cliente = clienteRepository.findByCpf(cpfNormalizado)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Cliente não encontrado."
+                ));
+
+        return ClienteConsultaResponse.fromEntity(cliente);
     }
 }
-
