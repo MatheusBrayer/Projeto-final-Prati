@@ -6,7 +6,6 @@ import com.prati.backend.entity.ClienteOficina;
 import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
-import com.prati.backend.exception.AutenticacaoException;
 import com.prati.backend.exception.ConflitoCadastroException;
 import com.prati.backend.exception.DadosInvalidosException;
 import com.prati.backend.exception.RecursoNaoEncontradoException;
@@ -15,13 +14,12 @@ import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.repository.UsuarioRepository;
 import com.prati.backend.validation.CpfValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.prati.backend.dto.ClienteConsultaResponse;
 import java.util.Locale;
 import java.util.Optional;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +30,10 @@ public class ClienteService {
     private final UsuarioRepository usuarioRepository;
 
     @Transactional
-    public Cliente cadastrarCliente(ClienteRequest request) {
+    public Cliente cadastrarCliente(
+            ClienteRequest request,
+            String emailUsuario
+    ) {
 
         // Normaliza e valida o CPF.
         String cpf = request.getCpf().trim();
@@ -42,26 +43,17 @@ public class ClienteService {
         }
 
         // Identifica o administrador autenticado.
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AutenticacaoException("Usuário não autenticado.");
-        }
-
-        String emailAdministrador = authentication.getName();
-
         Usuario administrador = usuarioRepository
-                .findByEmail(emailAdministrador)
-                .orElseThrow(() -> new AutenticacaoException(
+                .findByEmail(emailUsuario)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Usuário autenticado não encontrado."
                 ));
 
         // Garante que somente administradores de oficina realizem o cadastro.
         if (administrador.getPerfil() != Perfil.ADM_OFICINA
                 || administrador.getOficina() == null) {
-            throw new AutenticacaoException(
-                    "Usuário não possui permissão para cadastrar clientes."
+            throw new AccessDeniedException(
+                    "Somente um administrador de oficina pode cadastrar clientes."
             );
         }
 

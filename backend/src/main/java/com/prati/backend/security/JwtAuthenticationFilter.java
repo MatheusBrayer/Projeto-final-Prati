@@ -62,14 +62,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     Usuario usuario = usuarioOptional.get();
 
-                    // Converte o perfil do usuário em uma autoridade do Spring Security.
-                    String autoridade = "ROLE_" + usuario.getPerfil().name();
+// Converte o perfil do usuário em uma autoridade do Spring Security.
+                    SimpleGrantedAuthority authority =
+                            new SimpleGrantedAuthority("ROLE_" + usuario.getPerfil().name());
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     email,
                                     null,
-                                    List.of(new SimpleGrantedAuthority(autoridade))
+                                    List.of(authority)
                             );
 
                     authentication.setDetails(

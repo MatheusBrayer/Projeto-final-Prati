@@ -37,11 +37,8 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) ->
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
-                .authorizeHttpRequests(auth -> auth
 
-                        // Somente o administrador do sistema cadastra oficinas.
-                        .requestMatchers(HttpMethod.POST, "/api/oficinas")
-                        .hasRole("ADM_SISTEMA")
+                .authorizeHttpRequests(auth -> auth
 
                         // Endpoints públicos de autenticação.
                         .requestMatchers(
@@ -51,18 +48,34 @@ public class SecurityConfig {
                                 "/api/auth/primeiro-acesso/confirmar"
                         ).permitAll()
 
-                                // Somente administradores de oficina podem cadastrar clientes.
-                                .requestMatchers(HttpMethod.POST, "/api/clientes")
-                                .hasRole("ADM_OFICINA")
+                        // Somente o administrador do sistema pode cadastrar oficinas.
+                        .requestMatchers(HttpMethod.POST, "/api/oficinas")
+                        .hasRole("ADM_SISTEMA")
 
-                                // Somente administradores de oficina podem consultar clientes por CPF.
-                                .requestMatchers(HttpMethod.GET, "/api/clientes/buscar-por-cpf/**")
-                                .hasRole("ADM_OFICINA")
+                        // Somente administradores de oficina podem cadastrar clientes.
+                        .requestMatchers(HttpMethod.POST, "/api/clientes")
+                        .hasRole("ADM_OFICINA")
 
-                                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        // Somente administradores de oficina podem consultar clientes por CPF.
+                        .requestMatchers(HttpMethod.GET, "/api/clientes/buscar-por-cpf/**")
+                        .hasRole("ADM_OFICINA")
 
-                                // Demais endpoints exigem autenticação.
-                                .anyRequest().authenticated()
+                        // Permite o tratamento de erros pelo Spring.
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+
+                        /*
+                         * Novos endpoints devem receber regras específicas por perfil.
+                         *
+                         * ADM_SISTEMA: recursos administrativos do sistema.
+                         * ADM_OFICINA: recursos limitados à própria oficina.
+                         * CLIENTE: recursos limitados aos próprios dados.
+                         *
+                         * A autorização por perfil não substitui a validação
+                         * de propriedade dos dados na camada de serviço.
+                         */
+
+                        // Demais endpoints exigem autenticação.
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,

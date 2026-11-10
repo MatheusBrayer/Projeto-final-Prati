@@ -1,7 +1,10 @@
+
 package com.prati.backend.service;
 
+import com.prati.backend.dto.ClienteConsultaResponse;
 import com.prati.backend.dto.ClienteRequest;
 import com.prati.backend.entity.Cliente;
+import com.prati.backend.entity.ClienteOficina;
 import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
@@ -11,24 +14,23 @@ import com.prati.backend.exception.RecursoNaoEncontradoException;
 import com.prati.backend.repository.ClienteOficinaRepository;
 import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.repository.UsuarioRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import com.prati.backend.dto.ClienteConsultaResponse;
-import java.util.List;
+import org.springframework.security.access.AccessDeniedException;
+
 import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ClienteServiceTest {
+
+    private static final String EMAIL_ADMIN = "admin@oficina.com";
 
     @Mock
     private ClienteRepository clienteRepository;
@@ -42,9 +44,8 @@ class ClienteServiceTest {
     @InjectMocks
     private ClienteService clienteService;
 
-    private static final String EMAIL_ADMIN = "admin@oficina.com";
+    private void prepararAdministrador() {
 
-    private void autenticarAdministrador() {
         Oficina oficina = new Oficina();
         oficina.setId(1L);
 
@@ -56,22 +57,10 @@ class ClienteServiceTest {
 
         when(usuarioRepository.findByEmail(EMAIL_ADMIN))
                 .thenReturn(Optional.of(administrador));
-
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        EMAIL_ADMIN,
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_ADM_OFICINA"))
-                )
-        );
-    }
-
-    @AfterEach
-    void limparContextoSeguranca() {
-        SecurityContextHolder.clearContext();
     }
 
     private ClienteRequest criarRequest() {
+
         ClienteRequest request = new ClienteRequest();
         request.setNome("João da Silva");
         request.setCpf("52998224725");
@@ -84,15 +73,13 @@ class ClienteServiceTest {
 
     @Test
     void deveCadastrarClienteQuandoCpfNaoExiste() {
-        autenticarAdministrador();
+
+        prepararAdministrador();
 
         ClienteRequest request = criarRequest();
 
         when(clienteRepository.findByCpf(request.getCpf()))
                 .thenReturn(Optional.empty());
-
-        when(clienteRepository.existsByEmail(request.getEmail()))
-                .thenReturn(false);
 
         when(clienteRepository.save(any(Cliente.class)))
                 .thenAnswer(invocacao -> {
@@ -101,23 +88,22 @@ class ClienteServiceTest {
                     return cliente;
                 });
 
-        when(clienteOficinaRepository
-                .existsByClienteIdAndOficinaId(1L, 1L))
-                .thenReturn(false);
-
-        Cliente resultado = clienteService.cadastrarCliente(request);
+        Cliente resultado = clienteService.cadastrarCliente(
+                request, EMAIL_ADMIN
+        );
 
         assertNotNull(resultado);
         assertEquals("João da Silva", resultado.getNome());
         assertEquals("52998224725", resultado.getCpf());
 
         verify(clienteRepository).save(any(Cliente.class));
-        verify(clienteOficinaRepository).save(any());
+        verify(clienteOficinaRepository).save(any(ClienteOficina.class));
     }
 
     @Test
     void deveAtualizarClienteQuandoCpfJaExiste() {
-        autenticarAdministrador();
+
+        prepararAdministrador();
 
         ClienteRequest request = criarRequest();
 
@@ -140,7 +126,9 @@ class ClienteServiceTest {
                 .existsByClienteIdAndOficinaId(1L, 1L))
                 .thenReturn(true);
 
-        Cliente resultado = clienteService.cadastrarCliente(request);
+        Cliente resultado = clienteService.cadastrarCliente(
+                request, EMAIL_ADMIN
+        );
 
         assertEquals("João da Silva", resultado.getNome());
         assertEquals("51999999999", resultado.getTelefone());
@@ -151,7 +139,8 @@ class ClienteServiceTest {
 
     @Test
     void deveLancarExcecaoQuandoEmailPertencerAOutroCliente() {
-        autenticarAdministrador();
+
+        prepararAdministrador();
 
         ClienteRequest request = criarRequest();
 
@@ -171,7 +160,7 @@ class ClienteServiceTest {
 
         assertThrows(
                 ConflitoCadastroException.class,
-                () -> clienteService.cadastrarCliente(request)
+                () -> clienteService.cadastrarCliente(request, EMAIL_ADMIN)
         );
 
         verify(clienteRepository, never()).save(any());
@@ -180,15 +169,13 @@ class ClienteServiceTest {
 
     @Test
     void deveSalvarTodosOsDadosRecebidosNoRequest() {
-        autenticarAdministrador();
+
+        prepararAdministrador();
 
         ClienteRequest request = criarRequest();
 
         when(clienteRepository.findByCpf(request.getCpf()))
                 .thenReturn(Optional.empty());
-
-        when(clienteRepository.existsByEmail(request.getEmail()))
-                .thenReturn(false);
 
         when(clienteRepository.save(any(Cliente.class)))
                 .thenAnswer(invocacao -> {
@@ -197,11 +184,9 @@ class ClienteServiceTest {
                     return cliente;
                 });
 
-        when(clienteOficinaRepository
-                .existsByClienteIdAndOficinaId(1L, 1L))
-                .thenReturn(false);
-
-        Cliente resultado = clienteService.cadastrarCliente(request);
+        Cliente resultado = clienteService.cadastrarCliente(
+                request, EMAIL_ADMIN
+        );
 
         assertAll(
                 () -> assertEquals("João da Silva", resultado.getNome()),
@@ -210,16 +195,20 @@ class ClienteServiceTest {
                 () -> assertEquals("joao@email.com", resultado.getEmail()),
                 () -> assertEquals("Rua das Flores", resultado.getEndereco())
         );
+
+        verify(clienteRepository).save(any(Cliente.class));
+        verify(clienteOficinaRepository).save(any(ClienteOficina.class));
     }
 
     @Test
     void deveLancarExcecaoQuandoCpfForInvalido() {
+
         ClienteRequest request = criarRequest();
         request.setCpf("12345678900");
 
         assertThrows(
                 DadosInvalidosException.class,
-                () -> clienteService.cadastrarCliente(request)
+                () -> clienteService.cadastrarCliente(request, EMAIL_ADMIN)
         );
 
         verifyNoInteractions(
@@ -230,7 +219,29 @@ class ClienteServiceTest {
     }
 
     @Test
+    void deveImpedirCadastroQuandoUsuarioNaoForAdministradorDaOficina() {
+
+        Usuario usuario = new Usuario();
+        usuario.setEmail(EMAIL_ADMIN);
+        usuario.setPerfil(Perfil.CLIENTE);
+        usuario.setAtivo(true);
+
+        when(usuarioRepository.findByEmail(EMAIL_ADMIN))
+                .thenReturn(Optional.of(usuario));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> clienteService.cadastrarCliente(
+                        criarRequest(), EMAIL_ADMIN
+                )
+        );
+
+        verifyNoInteractions(clienteRepository, clienteOficinaRepository);
+    }
+
+    @Test
     void deveBuscarClientePeloEmail() {
+
         Cliente cliente = new Cliente();
         cliente.setEmail("cliente@email.com");
 
@@ -246,6 +257,7 @@ class ClienteServiceTest {
 
     @Test
     void deveLancarExcecaoQuandoClienteNaoForEncontradoPeloEmail() {
+
         when(clienteRepository.findByEmail("inexistente@email.com"))
                 .thenReturn(Optional.empty());
 
@@ -259,6 +271,7 @@ class ClienteServiceTest {
 
     @Test
     void deveBuscarClientePeloCpf() {
+
         Cliente cliente = new Cliente();
         cliente.setId(1L);
         cliente.setNome("João da Silva");
@@ -287,6 +300,7 @@ class ClienteServiceTest {
 
     @Test
     void deveLancarExcecaoQuandoClienteNaoForEncontradoPeloCpf() {
+
         when(clienteRepository.findByCpf("52998224725"))
                 .thenReturn(Optional.empty());
 
@@ -300,6 +314,7 @@ class ClienteServiceTest {
 
     @Test
     void deveLancarExcecaoQuandoCpfForInvalidoNaBusca() {
+
         assertThrows(
                 DadosInvalidosException.class,
                 () -> clienteService.buscarPorCpf("12345678900")

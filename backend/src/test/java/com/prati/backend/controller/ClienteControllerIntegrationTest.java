@@ -1,48 +1,48 @@
+
 package com.prati.backend.controller;
 
 import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
+import com.prati.backend.repository.ClienteOficinaRepository;
+import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.repository.OficinaRepository;
 import com.prati.backend.repository.UsuarioRepository;
+import com.prati.backend.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest(
-        properties = {
-                "spring.datasource.url=jdbc:h2:mem:autogestao_test;DB_CLOSE_DELAY=-1",
-                "spring.datasource.driver-class-name=org.h2.Driver",
-                "spring.datasource.username=sa",
-                "spring.datasource.password=",
-                "spring.jpa.hibernate.ddl-auto=create-drop"
-        }
-)
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:autogestao_test;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "jwt.secret=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        "jwt.expiration=3600000"
+})
 @AutoConfigureMockMvc
 class ClienteControllerIntegrationTest {
 
     private static final String EMAIL_ADMIN = "admin@oficina.com";
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private MockMvc mockMvc;
 
     @Autowired
-    private MockMvc mockMvc;
+    private JwtService jwtService;
 
     @Autowired
     private OficinaRepository oficinaRepository;
@@ -50,24 +50,24 @@ class ClienteControllerIntegrationTest {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private ClienteRepository clienteRepository;
+
+    @Autowired
+    private ClienteOficinaRepository clienteOficinaRepository;
+
     @MockitoBean
     private JavaMailSender mailSender;
 
-    private void autenticarAdministrador() throws Exception {
-        mockMvc.perform(
-                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .post("/api/clientes")
-                        .with(user(EMAIL_ADMIN).roles("ADM_OFICINA"))
-        );
-    }
+    private String tokenAdministrador;
 
     @BeforeEach
     void prepararBancoDeDados() {
 
-        jdbcTemplate.execute("DELETE FROM clientes_oficinas");
-        jdbcTemplate.execute("DELETE FROM usuarios");
-        jdbcTemplate.execute("DELETE FROM clientes");
-        jdbcTemplate.execute("DELETE FROM oficinas");
+        clienteOficinaRepository.deleteAll();
+        usuarioRepository.deleteAll();
+        clienteRepository.deleteAll();
+        oficinaRepository.deleteAll();
 
         Oficina oficina = new Oficina();
         oficina.setNome("Oficina Teste");
@@ -86,10 +86,21 @@ class ClienteControllerIntegrationTest {
         administrador.setOficina(oficina);
 
         usuarioRepository.save(administrador);
+
+        tokenAdministrador = jwtService.gerarToken(administrador.getEmail());
     }
 
-    private SecurityMockMvcRequestPostProcessors.UserRequestPostProcessor administradorAutenticado() {
-        return user(EMAIL_ADMIN).roles("ADM_OFICINA");
+    private String criarTokenParaPerfil(Perfil perfil) {
+
+        Usuario usuario = new Usuario();
+        usuario.setEmail(perfil.name().toLowerCase() + "@teste.com");
+        usuario.setSenha("senha-teste");
+        usuario.setPerfil(perfil);
+        usuario.setAtivo(true);
+
+        usuarioRepository.save(usuario);
+
+        return jwtService.gerarToken(usuario.getEmail());
     }
 
     @Test
@@ -106,7 +117,7 @@ class ClienteControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/clientes")
-                        .with(administradorAutenticado())
+                        .header("Authorization", "Bearer " + tokenAdministrador)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated())
@@ -129,7 +140,7 @@ class ClienteControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/clientes")
-                        .with(administradorAutenticado())
+                        .header("Authorization", "Bearer " + tokenAdministrador)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
@@ -161,13 +172,13 @@ class ClienteControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/clientes")
-                        .with(administradorAutenticado())
+                        .header("Authorization", "Bearer " + tokenAdministrador)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(primeiroCadastro))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/clientes")
-                        .with(administradorAutenticado())
+                        .header("Authorization", "Bearer " + tokenAdministrador)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(segundoCadastro))
                 .andExpect(status().isCreated())
@@ -189,7 +200,7 @@ class ClienteControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/clientes")
-                        .with(administradorAutenticado())
+                        .header("Authorization", "Bearer " + tokenAdministrador)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest());
@@ -199,23 +210,23 @@ class ClienteControllerIntegrationTest {
     void deveBuscarClientePorCpfComSucesso() throws Exception {
 
         String json = """
-            {
-                "nome": "Maria da Silva",
-                "cpf": "52998224725",
-                "telefone": "51988888888",
-                "email": "maria@email.com",
-                "endereco": "Rua das Flores, 123"
-            }
-            """;
+                {
+                    "nome": "Maria da Silva",
+                    "cpf": "52998224725",
+                    "telefone": "51988888888",
+                    "email": "maria@email.com",
+                    "endereco": "Rua das Flores, 123"
+                }
+                """;
 
         mockMvc.perform(post("/api/clientes")
-                        .with(administradorAutenticado())
+                        .header("Authorization", "Bearer " + tokenAdministrador)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/clientes/buscar-por-cpf/{cpf}", "52998224725")
-                        .with(administradorAutenticado()))
+                        .header("Authorization", "Bearer " + tokenAdministrador))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Maria da Silva"))
                 .andExpect(jsonPath("$.cpf").value("52998224725"))
@@ -226,7 +237,7 @@ class ClienteControllerIntegrationTest {
     void deveRetornar404QuandoClienteNaoForEncontradoPeloCpf() throws Exception {
 
         mockMvc.perform(get("/api/clientes/buscar-por-cpf/{cpf}", "52998224725")
-                        .with(administradorAutenticado()))
+                        .header("Authorization", "Bearer " + tokenAdministrador))
                 .andExpect(status().isNotFound());
     }
 
@@ -234,7 +245,7 @@ class ClienteControllerIntegrationTest {
     void deveRetornar400QuandoCpfForInvalidoNaBusca() throws Exception {
 
         mockMvc.perform(get("/api/clientes/buscar-por-cpf/{cpf}", "12345678900")
-                        .with(administradorAutenticado()))
+                        .header("Authorization", "Bearer " + tokenAdministrador))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erro")
                         .value("O CPF informado é inválido."));
@@ -243,16 +254,20 @@ class ClienteControllerIntegrationTest {
     @Test
     void deveRetornar403QuandoClienteTentarBuscarPorCpf() throws Exception {
 
+        String tokenCliente = criarTokenParaPerfil(Perfil.CLIENTE);
+
         mockMvc.perform(get("/api/clientes/buscar-por-cpf/{cpf}", "52998224725")
-                        .with(user("cliente@email.com").roles("CLIENTE")))
+                        .header("Authorization", "Bearer " + tokenCliente))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void deveRetornar403QuandoAdministradorSistemaTentarBuscarPorCpf() throws Exception {
 
+        String tokenSistema = criarTokenParaPerfil(Perfil.ADM_SISTEMA);
+
         mockMvc.perform(get("/api/clientes/buscar-por-cpf/{cpf}", "52998224725")
-                        .with(user("sistema@email.com").roles("ADM_SISTEMA")))
+                        .header("Authorization", "Bearer " + tokenSistema))
                 .andExpect(status().isForbidden());
     }
 
