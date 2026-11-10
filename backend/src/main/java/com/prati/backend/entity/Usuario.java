@@ -18,7 +18,7 @@ public class Usuario {
     @Column(nullable = false, length = 100, unique = true)
     private String email;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String senha;
 
     @Enumerated(EnumType.STRING)
@@ -26,7 +26,7 @@ public class Usuario {
     private Perfil perfil;
 
     @Column(nullable = false)
-    private Boolean ativo = true;
+    private Boolean ativo = false;
 
     @ManyToOne
     @JoinColumn(name = "oficina_id")
