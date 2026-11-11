@@ -31,6 +31,11 @@ public class ClienteController {
 
     @GetMapping("/buscar-por-cpf/{cpf}")
     public ClienteConsultaResponse buscarPorCpf(@PathVariable String cpf) {
-        return clienteService.buscarPorCpf(cpf);
+
+        String emailUsuario = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        return clienteService.buscarPorCpf(cpf, emailUsuario);
     }
 }

@@ -100,8 +100,9 @@ class ClienteServiceTest {
         verify(clienteOficinaRepository).save(any(ClienteOficina.class));
     }
 
+
     @Test
-    void deveAtualizarClienteQuandoCpfJaExiste() {
+    void deveManterDadosGlobaisQuandoCpfJaExiste() {
 
         prepararAdministrador();
 
@@ -112,11 +113,9 @@ class ClienteServiceTest {
         clienteExistente.setNome("João antigo");
         clienteExistente.setCpf(request.getCpf());
         clienteExistente.setEmail(request.getEmail());
+        clienteExistente.setTelefone("51888888888");
 
         when(clienteRepository.findByCpf(request.getCpf()))
-                .thenReturn(Optional.of(clienteExistente));
-
-        when(clienteRepository.findByEmail(request.getEmail()))
                 .thenReturn(Optional.of(clienteExistente));
 
         when(clienteRepository.save(any(Cliente.class)))
@@ -130,12 +129,16 @@ class ClienteServiceTest {
                 request, EMAIL_ADMIN
         );
 
-        assertEquals("João da Silva", resultado.getNome());
-        assertEquals("51999999999", resultado.getTelefone());
+        assertAll(
+                () -> assertEquals(1L, resultado.getId()),
+                () -> assertEquals("João antigo", resultado.getNome()),
+                () -> assertEquals("51888888888", resultado.getTelefone())
+        );
 
         verify(clienteRepository).save(clienteExistente);
         verify(clienteOficinaRepository, never()).save(any());
     }
+
 
     @Test
     void deveLancarExcecaoQuandoEmailPertencerAOutroCliente() {
@@ -269,8 +272,18 @@ class ClienteServiceTest {
         );
     }
 
+
     @Test
     void deveBuscarClientePeloCpf() {
+
+        String emailUsuario = "admin@oficina.com";
+
+        Oficina oficina = new Oficina();
+        oficina.setId(1L);
+
+        Usuario usuario = new Usuario();
+        usuario.setPerfil(Perfil.ADM_OFICINA);
+        usuario.setOficina(oficina);
 
         Cliente cliente = new Cliente();
         cliente.setId(1L);
@@ -280,11 +293,17 @@ class ClienteServiceTest {
         cliente.setEmail("joao@email.com");
         cliente.setEndereco("Rua das Flores");
 
+        when(usuarioRepository.findByEmail(emailUsuario))
+                .thenReturn(Optional.of(usuario));
+
         when(clienteRepository.findByCpf("52998224725"))
                 .thenReturn(Optional.of(cliente));
 
+        when(clienteOficinaRepository.existsByClienteIdAndOficinaId(1L, 1L))
+                .thenReturn(true);
+
         ClienteConsultaResponse resultado =
-                clienteService.buscarPorCpf("52998224725");
+                clienteService.buscarPorCpf("52998224725", emailUsuario);
 
         assertAll(
                 () -> assertEquals(1L, resultado.id()),
@@ -296,17 +315,32 @@ class ClienteServiceTest {
         );
 
         verify(clienteRepository).findByCpf("52998224725");
+        verify(clienteOficinaRepository)
+                .existsByClienteIdAndOficinaId(1L, 1L);
     }
 
     @Test
     void deveLancarExcecaoQuandoClienteNaoForEncontradoPeloCpf() {
+
+        String emailUsuario = "admin@oficina.com";
+
+        Oficina oficina = new Oficina();
+        oficina.setId(1L);
+
+        Usuario usuario = new Usuario();
+        usuario.setPerfil(Perfil.ADM_OFICINA);
+        usuario.setOficina(oficina);
+
+        when(usuarioRepository.findByEmail(emailUsuario))
+                .thenReturn(Optional.of(usuario));
 
         when(clienteRepository.findByCpf("52998224725"))
                 .thenReturn(Optional.empty());
 
         assertThrows(
                 RecursoNaoEncontradoException.class,
-                () -> clienteService.buscarPorCpf("52998224725")
+                () -> clienteService.buscarPorCpf(
+                        "52998224725", emailUsuario)
         );
 
         verify(clienteRepository).findByCpf("52998224725");
@@ -317,9 +351,11 @@ class ClienteServiceTest {
 
         assertThrows(
                 DadosInvalidosException.class,
-                () -> clienteService.buscarPorCpf("12345678900")
+                () -> clienteService.buscarPorCpf(
+                        "12345678900", "admin@oficina.com")
         );
 
         verifyNoInteractions(clienteRepository);
     }
+
 }
