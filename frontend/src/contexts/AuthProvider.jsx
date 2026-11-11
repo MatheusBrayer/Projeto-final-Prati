@@ -1,6 +1,6 @@
 import { realizarLogin } from "../services/authService.js";
 import { AuthContext } from "./AuthContext.js";
-import { tokenExpirado } from "./tokenUtils.js";
+import { obterExpiracaoToken, tokenExpirado } from "./tokenUtils.js";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "autogestao_sessao";
@@ -56,33 +56,28 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!sessao?.token) return;
 
-    let payload;
+    const expiracao = obterExpiracaoToken(sessao.token);
 
-    try {
-      const partePayload = sessao.token.split(".")[1];
+    function verificarExpiracao() {
+      if (expiracao === null || Date.now() >= expiracao) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        setSessao(null);
+        return;
+      }
 
-      const base64 = partePayload.replace(/-/g, "+").replace(/_/g, "/");
+      const tempoRestante = expiracao - Date.now();
+      const tempoMaximo = 2147483647;
 
-      payload = JSON.parse(atob(base64));
-    } catch {
-      return;
+      timeout = setTimeout(
+        verificarExpiracao,
+        Math.min(tempoRestante, tempoMaximo),
+      );
     }
 
-    if (typeof payload.exp !== "number") {
-      return;
-    }
-
-    const tempoRestante = payload.exp * 1000 - Date.now();
-
-    const timeout = setTimeout(
-      () => {
-        logout();
-      },
-      Math.max(0, Math.min(tempoRestante, 2147483647)),
-    );
+    let timeout = setTimeout(verificarExpiracao, 0);
 
     return () => clearTimeout(timeout);
-  }, [sessao]);
+  }, [sessao?.token]);
 
   useEffect(() => {
     function handleUnauthorized() {
