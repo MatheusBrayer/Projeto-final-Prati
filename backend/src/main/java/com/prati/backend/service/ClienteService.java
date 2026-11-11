@@ -85,8 +85,6 @@ public class ClienteService {
                 );
             }
 
-            // Atualiza o cadastro global.
-            atualizarDadosCliente(cliente, request, cpf, emailCliente);
 
         } else {
 
@@ -142,8 +140,9 @@ public class ClienteService {
                         ));
     }
 
+
     @Transactional(readOnly = true)
-    public ClienteConsultaResponse buscarPorCpf(String cpf) {
+    public ClienteConsultaResponse buscarPorCpf(String cpf, String emailUsuario) {
 
         String cpfNormalizado = cpf.trim();
 
@@ -151,10 +150,36 @@ public class ClienteService {
             throw new DadosInvalidosException("O CPF informado é inválido.");
         }
 
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Usuário não encontrado."
+                ));
+
+        if (usuario.getPerfil() != Perfil.ADM_OFICINA
+                || usuario.getOficina() == null) {
+            throw new AccessDeniedException(
+                    "Usuário sem permissão para consultar clientes."
+            );
+        }
+
+        Oficina oficina = usuario.getOficina();
+
         Cliente cliente = clienteRepository.findByCpf(cpfNormalizado)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Cliente não encontrado."
                 ));
+
+        boolean possuiVinculo = clienteOficinaRepository
+                .existsByClienteIdAndOficinaId(
+                        cliente.getId(),
+                        oficina.getId()
+                );
+
+        if (!possuiVinculo) {
+            throw new RecursoNaoEncontradoException(
+                    "Cliente não encontrado nesta oficina."
+            );
+        }
 
         return ClienteConsultaResponse.fromEntity(cliente);
     }
