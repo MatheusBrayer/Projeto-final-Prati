@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./Login.css";
 import { useAuth } from "../../contexts/useAuth.js";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 function Login() {
   const { login } = useAuth();
@@ -10,6 +10,8 @@ function Login() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [searchParams] = useSearchParams();
+  const slugOficina = searchParams.get("oficina");
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -26,7 +28,11 @@ function Login() {
         CLIENTE: "/cliente",
       };
 
-      const destino = rotasPorPerfil[usuario.perfil];
+      let destino = rotasPorPerfil[usuario.perfil];
+
+      if (usuario.perfil === "CLIENTE" && slugOficina) {
+        destino = `/cliente?oficina=${encodeURIComponent(slugOficina)}`;
+      }
 
       if (!destino) {
         setErro("Perfil de usuário não reconhecido.");
@@ -113,7 +119,15 @@ function Login() {
             </button>
             <div className="login-first-access">
               <span>Primeiro acesso?</span>
-              <Link to="/primeiro-acesso">Ative sua conta</Link>
+              <Link
+                to={
+                  slugOficina
+                    ? `/primeiro-acesso?oficina=${encodeURIComponent(slugOficina)}`
+                    : "/primeiro-acesso"
+                }
+              >
+                Ative sua conta
+              </Link>
             </div>
           </form>
         </div>

@@ -4,7 +4,7 @@ import {
   solicitarPrimeiroAcesso,
   confirmarPrimeiroAcesso,
 } from "../../services/authService.js";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 function PrimeiroAcesso() {
   const [etapa, setEtapa] = useState(1);
@@ -16,6 +16,12 @@ function PrimeiroAcesso() {
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const slugOficina = searchParams.get("oficina");
+
+  const rotaLogin = slugOficina
+    ? `/login?oficina=${encodeURIComponent(slugOficina)}`
+    : "/login";
 
   function validarSenhas() {
     if (senha !== confirmarSenha) {
@@ -48,7 +54,7 @@ function PrimeiroAcesso() {
 
       alert(resposta.mensagem || "Primeiro acesso realizado com sucesso!");
 
-      navigate("/login");
+      navigate(rotaLogin, { replace: true });
     } catch (error) {
       setErro(error.message);
     } finally {
@@ -249,7 +255,9 @@ function PrimeiroAcesso() {
         )}
 
         <footer className="primeiro-acesso-footer">
-          <Link to="/login">Voltar para o login</Link>
+          <footer className="primeiro-acesso-footer">
+            <Link to={rotaLogin}>Voltar para o login</Link>
+          </footer>
         </footer>
       </section>
     </main>
