@@ -1,80 +1,114 @@
-const API_URL = 'http://localhost:8080';
+const API_URL = "http://localhost:8080";
+const STORAGE_KEY = "autogestao_sessao";
 
-// --- CLIENTES ---
-export async function getClientes() {
-  try {
-    const response = await fetch(`${API_URL}/api/clientes`);
-    if (!response.ok) throw new Error('Erro ao buscar clientes');
-    return await response.json();
-  } catch (error) {
-    console.error('Erro na API de Clientes:', error);
-    throw error;
+// Função central para requisições autenticadas
+export async function apiFetch(endpoint, options = {}) {
+  const dados = sessionStorage.getItem(STORAGE_KEY);
+  let token = null;
+
+  if (dados) {
+    try {
+      token = JSON.parse(dados).token;
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
   }
+
+  const headers = new Headers(options.headers);
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (options.body && !(options.body instanceof FormData)) {
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401 && token) {
+    sessionStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("auth:unauthorized"));
+  }
+
+  return response;
+}
+
+// CLIENTES
+
+export async function getClientes() {
+  const response = await apiFetch("/api/clientes");
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar clientes");
+  }
+
+  return response.json();
 }
 
 export async function createCliente(cliente) {
-  try {
-    const response = await fetch(`${API_URL}/api/clientes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cliente),
-    });
-    if (!response.ok) throw new Error('Erro ao criar cliente');
-    return await response.json();
-  } catch (error) {
-    console.error('Erro ao salvar cliente:', error);
-    throw error;
+  const response = await apiFetch("/api/clientes", {
+    method: "POST",
+    body: JSON.stringify(cliente),
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao criar cliente");
   }
+
+  return response.json();
 }
 
-// --- VEÍCULOS ---
+// VEÍCULOS
+
 export async function getVeiculos() {
-  try {
-    const response = await fetch(`${API_URL}/api/veiculos`);
-    if (!response.ok) throw new Error('Erro ao buscar veículos');
-    return await response.json();
-  } catch (error) {
-    console.error('Erro na API de Veículos:', error);
-    throw error;
+  const response = await apiFetch("/api/veiculos");
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar veículos");
   }
+
+  return response.json();
 }
 
-// --- ORDENS DE SERVIÇO ---
+// ORDENS DE SERVIÇO
+
 export async function getOrdensServico() {
-  try {
-    const response = await fetch(`${API_URL}/api/ordens`);
-    if (!response.ok) throw new Error('Erro ao buscar ordens de serviço');
-    return await response.json();
-  } catch (error) {
-    console.error('Erro na API de Ordens:', error);
-    throw error;
+  const response = await apiFetch("/api/ordens");
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar ordens de serviço");
   }
+
+  return response.json();
 }
 
 export async function createOrdemServico(ordem) {
-  try {
-    const response = await fetch(`${API_URL}/api/ordens`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ordem),
-    });
-    if (!response.ok) throw new Error('Erro ao criar ordem de serviço');
-    return await response.json();
-  } catch (error) {
-    console.error('Erro ao salvar OS:', error);
-    throw error;
+  const response = await apiFetch("/api/ordens", {
+    method: "POST",
+    body: JSON.stringify(ordem),
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao criar ordem de serviço");
   }
+
+  return response.json();
 }
 
 export async function finalizarOrdemServico(id) {
-  try {
-    const response = await fetch(`${API_URL}/api/ordens/${id}/finalizar`, {
-      method: 'PUT',
-    });
-    if (!response.ok) throw new Error('Erro ao finalizar ordem de serviço');
-    return await response.json();
-  } catch (error) {
-    console.error('Erro ao finalizar OS:', error);
-    throw error;
+  const response = await apiFetch(`/api/ordens/${id}/finalizar`, {
+    method: "PUT",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao finalizar ordem de serviço");
   }
+
+  return response.json();
 }

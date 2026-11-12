@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import "./Login.css";
-import { realizarLogin } from "../../services/authService.js";
+import { useAuth } from "../../contexts/useAuth.js";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -16,13 +18,22 @@ function Login() {
     setCarregando(true);
 
     try {
-      const resposta = await realizarLogin(email, senha);
+      const usuario = await login(email, senha);
 
-      console.log("Login realizado com sucesso:", {
-        usuarioId: resposta.usuarioId,
-        email: resposta.email,
-        perfil: resposta.perfil,
-      });
+      const rotasPorPerfil = {
+        ADM_SISTEMA: "/admin",
+        ADM_OFICINA: "/gestao",
+        CLIENTE: "/cliente",
+      };
+
+      const destino = rotasPorPerfil[usuario.perfil];
+
+      if (!destino) {
+        setErro("Perfil de usuário não reconhecido.");
+        return;
+      }
+
+      navigate(destino, { replace: true });
     } catch (error) {
       setErro(error.message);
     } finally {
