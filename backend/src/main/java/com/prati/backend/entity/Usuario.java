@@ -15,10 +15,10 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100, unique = true)
+    @Column(nullable = false, length = 150, unique = true)
     private String email;
 
-    @Column(length = 100)
+    @Column(length = 255)
     private String senha;
 
     @Enumerated(EnumType.STRING)

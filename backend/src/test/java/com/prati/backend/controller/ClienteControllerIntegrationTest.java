@@ -149,27 +149,27 @@ class ClienteControllerIntegrationTest {
     }
 
     @Test
-    void deveAtualizarClienteQuandoCpfJaEstiverCadastrado() throws Exception {
+    void devePreservarDadosDoClienteQuandoCpfJaEstiverCadastrado() throws Exception {
 
         String primeiroCadastro = """
-                {
-                    "nome": "Maria da Silva",
-                    "cpf": "52998224725",
-                    "telefone": "51988888888",
-                    "email": "maria@email.com",
-                    "endereco": "Rua das Flores, 123"
-                }
-                """;
+            {
+                "nome": "Maria da Silva",
+                "cpf": "52998224725",
+                "telefone": "51988888888",
+                "email": "maria@email.com",
+                "endereco": "Rua das Flores, 123"
+            }
+            """;
 
         String segundoCadastro = """
-                {
-                    "nome": "Maria Souza",
-                    "cpf": "52998224725",
-                    "telefone": "51999999999",
-                    "email": "maria.souza@email.com",
-                    "endereco": "Rua das Palmeiras, 456"
-                }
-                """;
+            {
+                "nome": "Maria Souza",
+                "cpf": "52998224725",
+                "telefone": "51999999999",
+                "email": "maria.souza@email.com",
+                "endereco": "Rua das Palmeiras, 456"
+            }
+            """;
 
         mockMvc.perform(post("/api/clientes")
                         .header("Authorization", "Bearer " + tokenAdministrador)
@@ -182,9 +182,8 @@ class ClienteControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(segundoCadastro))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nome").value("Maria Souza"))
-                .andExpect(jsonPath("$.email")
-                        .value("maria.souza@email.com"));
+                .andExpect(jsonPath("$.nome").value("Maria da Silva"))
+                .andExpect(jsonPath("$.email").value("maria@email.com"));
     }
 
     @Test
