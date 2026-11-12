@@ -93,7 +93,7 @@ public class SecurityConfig {
 
         // Origem permitida: frontend React com Vite.
         configuration.setAllowedOrigins(
-                List.of("http://localhost:5173")
+                List.of("http://localhost:5174","http://localhost:5173")
         );
 
         // Métodos HTTP permitidos.
