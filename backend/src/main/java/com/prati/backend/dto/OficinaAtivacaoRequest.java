@@ -1,5 +1,5 @@
 
-package com.prati.backend.enums;
+package com.prati.backend.dto;
 
 import jakarta.validation.constraints.NotNull;
 

@@ -14,6 +14,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.prati.backend.enums.Perfil;
+import org.springframework.security.core.GrantedAuthority;
+
+import java.util.ArrayList;
 
 import java.io.IOException;
 import java.util.List;
@@ -62,15 +66,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     Usuario usuario = usuarioOptional.get();
 
-// Converte o perfil do usuário em uma autoridade do Spring Security.
-                    SimpleGrantedAuthority authority =
-                            new SimpleGrantedAuthority("ROLE_" + usuario.getPerfil().name());
+                    // Autoridades do usuário.
+                    List<GrantedAuthority> authorities = new ArrayList<>();
+
+                    // Adiciona a autoridade correspondente ao perfil.
+                    authorities.add(
+                            new SimpleGrantedAuthority(
+                                    "ROLE_" + usuario.getPerfil().name()
+                            )
+                    );
+
+                    // Adiciona a autoridade quando a oficina estiver ativa.
+                    if (usuario.getPerfil() == Perfil.ADM_OFICINA
+                            && usuario.getOficina() != null
+                            && usuario.getOficina().isAtivo()) {
+
+                        authorities.add(
+                                new SimpleGrantedAuthority("OFICINA_ATIVA")
+                        );
+                    }
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     email,
                                     null,
-                                    List.of(authority)
+                                    authorities
                             );
 
                     authentication.setDetails(
@@ -89,4 +109,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
 }

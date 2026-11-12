@@ -1,4 +1,8 @@
 package com.prati.backend.dto;
 
-public class OficinaPublicaResponse {
+public record OficinaPublicaResponse(
+        Long id,
+        String nome,
+        String slug
+) {
 }

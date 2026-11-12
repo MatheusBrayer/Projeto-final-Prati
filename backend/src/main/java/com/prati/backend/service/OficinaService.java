@@ -6,12 +6,14 @@ import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
 import com.prati.backend.exception.ConflitoCadastroException;
+import com.prati.backend.exception.RecursoNaoEncontradoException;
 import com.prati.backend.repository.OficinaRepository;
 import com.prati.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.prati.backend.dto.OficinaPublicaResponse;
+import java.text.Normalizer;
 import java.util.Locale;
 
 @Service
@@ -48,6 +50,9 @@ public class OficinaService {
         oficina.setEmail(request.getEmail().trim());
         oficina.setEndereco(request.getEndereco());
 
+        oficina.setSlug(gerarSlugUnico(oficina.getNome()));
+        oficina.setAtivo(false);
+
         Oficina oficinaSalva = oficinaRepository.save(oficina);
 
         Usuario administrador = new Usuario();
@@ -60,5 +65,65 @@ public class OficinaService {
         usuarioRepository.save(administrador);
 
         return oficinaSalva;
+    }
+
+    private String gerarSlugUnico(String nome) {
+
+        String slugBase = Normalizer.normalize(
+                nome, Normalizer.Form.NFD
+        );
+
+        slugBase = slugBase
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-|-$", "");
+
+        if (slugBase.isBlank()) {
+            slugBase = "oficina";
+        }
+
+        if (slugBase.length() > 140) {
+            slugBase = slugBase.substring(0, 140)
+                    .replaceAll("-$", "");
+        }
+
+        String slug = slugBase;
+        int contador = 2;
+
+        while (oficinaRepository.existsBySlug(slug)) {
+            slug = slugBase + "-" + contador;
+            contador++;
+        }
+
+        return slug;
+    }
+
+    @Transactional
+    public Oficina alterarAtivacao(Long id, boolean ativo) {
+
+        Oficina oficina = oficinaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Oficina não encontrada."
+                ));
+
+        oficina.setAtivo(ativo);
+
+        return oficinaRepository.save(oficina);
+    }
+
+    @Transactional(readOnly = true)
+    public OficinaPublicaResponse buscarPorSlug(String slug) {
+
+        Oficina oficina = oficinaRepository.findBySlug(slug)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Oficina não encontrada."
+                ));
+
+        return new OficinaPublicaResponse(
+                oficina.getId(),
+                oficina.getNome(),
+                oficina.getSlug()
+        );
     }
 }

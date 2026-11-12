@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name="oficinas")
+@Table(name = "oficinas")
 public class Oficina {
 
     @Id
@@ -29,4 +29,9 @@ public class Oficina {
     @Column(length = 255)
     private String endereco;
 
+    @Column(name = "slug", unique = true, length = 150)
+    private String slug;
+
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = false;
 }
