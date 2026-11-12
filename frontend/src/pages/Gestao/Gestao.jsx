@@ -1,63 +1,70 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth.js";
-import { buscarClientePorCpf } from "../../services/clienteService.js";
+import "./Gestao.css";
+
+const linksMenu = [
+  { caminho: "/gestao", texto: "📊 Dashboard", fim: true },
+  { caminho: "/gestao/clientes", texto: "👤 Clientes" },
+  { caminho: "/gestao/veiculos", texto: "🚙 Veículos" },
+  { caminho: "/gestao/ordens", texto: "🛠️ Ordens de Serviço" },
+];
 
 function Gestao() {
   const navigate = useNavigate();
   const { usuario, logout } = useAuth();
-
-  const [cpf, setCpf] = useState("");
-  const [resultado, setResultado] = useState("");
-  const [carregando, setCarregando] = useState(false);
 
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
   }
 
-  async function handleBuscarCliente(event) {
-    event.preventDefault();
-    setResultado("");
-    setCarregando(true);
-
-    try {
-      const cliente = await buscarClientePorCpf(cpf);
-      setResultado(
-        `Cliente encontrado: ${cliente.nome ?? "Consulta realizada"}`,
-      );
-    } catch (error) {
-      setResultado(error.message);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
   return (
-    <main style={{ padding: "30px" }}>
-      <h1>Painel de Gestão da Oficina</h1>
+    <div className="gestao-container">
+      {/* Menu lateral */}
+      <aside className="gestao-sidebar">
+        {/* Identificação do sistema */}
+        <div className="gestao-brand">
+          <h2>🚗 AutoGestão Pro</h2>
+          <span>Gestão Automotiva</span>
+        </div>
 
-      <p>Usuário: {usuario?.email}</p>
-      <p>Perfil: {usuario?.perfil}</p>
+        {/* Navegação */}
+        <nav className="gestao-menu" aria-label="Menu da oficina">
+          <span className="gestao-menu-titulo">Menu Principal</span>
 
-      <form onSubmit={handleBuscarCliente}>
-        <input
-          type="text"
-          placeholder="CPF do cliente"
-          value={cpf}
-          onChange={(event) => setCpf(event.target.value)}
-          required
-        />
+          {linksMenu.map((link) => (
+            <NavLink
+              key={link.caminho}
+              to={link.caminho}
+              end={link.fim}
+              className={({ isActive }) =>
+                `gestao-menu-link ${isActive ? "gestao-menu-link-ativo" : ""}`
+              }
+            >
+              {link.texto}
+            </NavLink>
+          ))}
+        </nav>
 
-        <button type="submit" disabled={carregando}>
-          {carregando ? "Buscando..." : "Buscar cliente"}
-        </button>
-      </form>
+        {/* Usuário autenticado e logout */}
+        <div className="gestao-usuario-area">
+          <p className="gestao-usuario-email">{usuario?.email}</p>
 
-      <p>{resultado}</p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="gestao-botao-sair"
+          >
+            Sair
+          </button>
+        </div>
+      </aside>
 
-      <button onClick={handleLogout}>Sair</button>
-    </main>
+      {/* Conteúdo das rotas filhas */}
+      <main className="gestao-conteudo">
+        <Outlet />
+      </main>
+    </div>
   );
 }
 

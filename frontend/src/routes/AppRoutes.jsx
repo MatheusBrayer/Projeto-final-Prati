@@ -8,6 +8,11 @@ import Cliente from "../pages/Cliente/Cliente.jsx";
 import Login from "../pages/Login/Login.jsx";
 import PrimeiroAcesso from "../pages/PrimeiroAcesso/PrimeiroAcesso.jsx";
 
+import Dashboard from "../pages/Dashboard/Dashboard.jsx";
+import Clients from "../pages/Clients/Clients.jsx";
+import Vehicles from "../pages/Vehicles/Vehicles.jsx";
+import ServiceOrders from "../pages/ServiceOrders/ServiceOrders.jsx";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -23,7 +28,12 @@ function AppRoutes() {
 
       {/* Administrador da oficina */}
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_OFICINA"]} />}>
-        <Route path="/gestao" element={<Gestao />} />
+        <Route path="/gestao" element={<Gestao />}>
+          <Route index element={<Dashboard />} />
+          <Route path="clientes" element={<Clients />} />
+          <Route path="veiculos" element={<Vehicles />} />
+          <Route path="ordens" element={<ServiceOrders />} />
+        </Route>
       </Route>
 
       {/* Cliente */}
