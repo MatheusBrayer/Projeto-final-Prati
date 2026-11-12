@@ -16,11 +16,14 @@ public class BackendApplication {
 		String dbPassword = dotenv.get("DB_PASSWORD");
 		String jwtSecret = dotenv.get("JWT_SECRET");
 		String jwtExpiration = dotenv.get("JWT_EXPIRATION");
+		String brevoSmtpLogin = dotenv.get("BREVO_SMTP_LOGIN");
+		String brevoSmtpKey = dotenv.get("BREVO_SMTP_KEY");
 
 		if (dbUrl == null || dbUsername == null || dbPassword == null
-				|| jwtSecret == null || jwtExpiration == null) {
+				|| jwtSecret == null || jwtExpiration == null
+				|| brevoSmtpLogin == null || brevoSmtpKey == null) {
 			throw new IllegalStateException(
-					"Configuração do banco ou JWT não encontrada. " +
+					"Configuração do banco, JWT ou Brevo não encontrada. " +
 							"Verifique se o arquivo .env contém todas as variáveis necessárias."
 			);
 		}
@@ -30,6 +33,8 @@ public class BackendApplication {
 		System.setProperty("DB_PASSWORD", dbPassword);
 		System.setProperty("JWT_SECRET", jwtSecret);
 		System.setProperty("JWT_EXPIRATION", jwtExpiration);
+		System.setProperty("BREVO_SMTP_LOGIN", brevoSmtpLogin);
+		System.setProperty("BREVO_SMTP_KEY", brevoSmtpKey);
 
 		SpringApplication.run(BackendApplication.class, args);
 	}

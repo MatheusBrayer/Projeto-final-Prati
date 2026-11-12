@@ -87,6 +87,23 @@ public class UsuarioService {
         );
     }
 
+    public Usuario cadastrarUsuarioCliente(
+            String email,
+            String senha,
+            Long clienteId
+    ) {
+        UsuarioRequest request = new UsuarioRequest();
+        request.setEmail(email);
+        request.setSenha(senha);
+
+        return cadastrarUsuario(
+                request,
+                Perfil.CLIENTE,
+                null,
+                clienteId
+        );
+    }
+
     private Usuario cadastrarUsuario(
             UsuarioRequest request,
             Perfil perfil,
@@ -102,6 +119,7 @@ public class UsuarioService {
                 senhaService.criptografar(request.getSenha())
         );
         novoUsuario.setPerfil(perfil);
+        novoUsuario.setAtivo(true);
 
         if (oficinaId != null) {
             Oficina oficina = oficinaRepository.findById(oficinaId)
