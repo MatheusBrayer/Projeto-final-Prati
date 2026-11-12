@@ -14,18 +14,22 @@ public class BackendApplication {
 		String dbUrl = dotenv.get("DB_URL");
 		String dbUsername = dotenv.get("DB_USERNAME");
 		String dbPassword = dotenv.get("DB_PASSWORD");
+		String jwtSecret = dotenv.get("JWT_SECRET");
+		String jwtExpiration = dotenv.get("JWT_EXPIRATION");
 
-		if (dbUrl == null || dbUsername == null || dbPassword == null) {
+		if (dbUrl == null || dbUsername == null || dbPassword == null
+				|| jwtSecret == null || jwtExpiration == null) {
 			throw new IllegalStateException(
-					"Configuração do banco não encontrada. " +
-							"Verifique se o arquivo .env existe e contém " +
-							"DB_URL, DB_USERNAME e DB_PASSWORD."
+					"Configuração do banco ou JWT não encontrada. " +
+							"Verifique se o arquivo .env contém todas as variáveis necessárias."
 			);
 		}
 
 		System.setProperty("DB_URL", dbUrl);
 		System.setProperty("DB_USERNAME", dbUsername);
 		System.setProperty("DB_PASSWORD", dbPassword);
+		System.setProperty("JWT_SECRET", jwtSecret);
+		System.setProperty("JWT_EXPIRATION", jwtExpiration);
 
 		SpringApplication.run(BackendApplication.class, args);
 	}
