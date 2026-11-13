@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
+import Home from "../pages/Home/Home.jsx";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute.jsx";
 
 import Admin from "../pages/Admin/Admin.jsx";
@@ -18,14 +19,16 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Rotas públicas */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
       <Route path="/o/:slugOficina" element={<OficinaPublica />} />
+
       {/* Administrador do sistema */}
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_SISTEMA"]} />}>
         <Route path="/admin" element={<Admin />} />
       </Route>
+
       {/* Administrador da oficina */}
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_OFICINA"]} />}>
         <Route path="/gestao" element={<Gestao />}>
@@ -35,6 +38,7 @@ function AppRoutes() {
           <Route path="ordens" element={<ServiceOrders />} />
         </Route>
       </Route>
+
       {/* Cliente */}
       <Route element={<ProtectedRoute perfisPermitidos={["CLIENTE"]} />}>
         <Route path="/cliente" element={<Cliente />} />
