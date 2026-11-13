@@ -12,6 +12,7 @@ import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import Clients from "../pages/Clients/Clients.jsx";
 import Vehicles from "../pages/Vehicles/Vehicles.jsx";
 import ServiceOrders from "../pages/ServiceOrders/ServiceOrders.jsx";
+import OficinaPublica from "../pages/OficinaPublica/OficinaPublica.jsx";
 
 function AppRoutes() {
   return (
@@ -20,12 +21,12 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
-
+      <Route path="/o/:slugOficina" element={<OficinaPublica />} />
       {/* Administrador do sistema */}
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_SISTEMA"]} />}>
         <Route path="/admin" element={<Admin />} />
       </Route>
-
+      cd
       {/* Administrador da oficina */}
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_OFICINA"]} />}>
         <Route path="/gestao" element={<Gestao />}>
@@ -35,7 +36,6 @@ function AppRoutes() {
           <Route path="ordens" element={<ServiceOrders />} />
         </Route>
       </Route>
-
       {/* Cliente */}
       <Route element={<ProtectedRoute perfisPermitidos={["CLIENTE"]} />}>
         <Route path="/cliente" element={<Cliente />} />

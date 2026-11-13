@@ -15,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import jakarta.servlet.DispatcherType;
+import org.springframework.security.authorization.AuthorizationManagers;
 
 import java.util.List;
 
@@ -40,6 +41,13 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Somente clientes autenticados podem consultar suas oficinas.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/clientes/me/oficinas"
+                        )
+                        .hasRole("CLIENTE")
+
                         // Endpoints públicos de autenticação.
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -52,13 +60,40 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/oficinas")
                         .hasRole("ADM_SISTEMA")
 
-                        // Somente administradores de oficina podem cadastrar clientes.
-                        .requestMatchers(HttpMethod.POST, "/api/clientes")
-                        .hasRole("ADM_OFICINA")
+                        // Somente o administrador do sistema pode ativar ou desativar oficinas.
+                        .requestMatchers(HttpMethod.PATCH, "/api/oficinas/*/ativacao")
+                        .hasRole("ADM_SISTEMA")
 
-                        // Somente administradores de oficina podem consultar clientes por CPF.
-                        .requestMatchers(HttpMethod.GET, "/api/clientes/buscar-por-cpf/**")
-                        .hasRole("ADM_OFICINA")
+
+                        // Somente administradores de oficinas ativas podem gerenciar clientes.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/clientes"
+                        )
+                        .access(AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager
+                                        .hasRole("ADM_OFICINA"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager
+                                        .hasAuthority("OFICINA_ATIVA")
+                        ))
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/oficinas/slug/*"
+                        ).permitAll()
+
+                        // Somente administradores de oficinas ativas podem buscar clientes por CPF.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/clientes/buscar-por-cpf/**"
+                        )
+                        .access(AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager
+                                        .hasRole("ADM_OFICINA"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager
+                                        .hasAuthority("OFICINA_ATIVA")
+                        ))
+
 
                         // Permite o tratamento de erros pelo Spring.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()

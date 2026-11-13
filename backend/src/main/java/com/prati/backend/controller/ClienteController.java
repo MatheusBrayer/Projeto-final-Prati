@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.prati.backend.dto.OficinaClienteResponse;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -37,5 +39,15 @@ public class ClienteController {
                 .getName();
 
         return clienteService.buscarPorCpf(cpf, emailUsuario);
+    }
+
+    @GetMapping("/me/oficinas")
+    public List<OficinaClienteResponse> listarMinhasOficinas() {
+
+        String emailUsuario = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        return clienteService.listarOficinasDoCliente(emailUsuario);
     }
 }

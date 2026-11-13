@@ -20,6 +20,8 @@ import com.prati.backend.dto.ClienteConsultaResponse;
 import java.util.Locale;
 import java.util.Optional;
 import org.springframework.security.access.AccessDeniedException;
+import java.util.List;
+import com.prati.backend.dto.OficinaClienteResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -182,5 +184,33 @@ public class ClienteService {
         }
 
         return ClienteConsultaResponse.fromEntity(cliente);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OficinaClienteResponse> listarOficinasDoCliente(String emailUsuario) {
+
+        // Identifica o usuário autenticado.
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Usuário autenticado não encontrado."
+                ));
+
+        // Garante que somente clientes consultem suas oficinas.
+        if (usuario.getPerfil() != Perfil.CLIENTE
+                || usuario.getCliente() == null) {
+            throw new AccessDeniedException(
+                    "Somente clientes podem consultar suas oficinas."
+            );
+        }
+
+        // Obtém o cliente associado ao usuário.
+        Long clienteId = usuario.getCliente().getId();
+
+        // Busca os vínculos e converte as oficinas para DTOs.
+        return clienteOficinaRepository.findByClienteId(clienteId)
+                .stream()
+                .map(ClienteOficina::getOficina)
+                .map(OficinaClienteResponse::fromEntity)
+                .toList();
     }
 }
