@@ -28,6 +28,29 @@ public class BackendApplication {
 			);
 		}
 
+		String adminEmail = dotenv.get("ADMIN_EMAIL");
+		String adminPassword = dotenv.get("ADMIN_PASSWORD");
+
+		if (adminEmail != null) {
+			System.setProperty("ADMIN_EMAIL", adminEmail);
+		}
+
+		if (adminPassword != null) {
+			System.setProperty("ADMIN_PASSWORD", adminPassword);
+		}
+
+		String adminBootstrapEnabled = dotenv.get("ADMIN_BOOTSTRAP_ENABLED");
+
+		if (adminBootstrapEnabled != null) {
+			System.setProperty("ADMIN_BOOTSTRAP_ENABLED", adminBootstrapEnabled);
+		}
+
+		String brevoMailFrom = dotenv.get("BREVO_MAIL_FROM");
+
+		if (brevoMailFrom != null) {
+			System.setProperty("BREVO_MAIL_FROM", brevoMailFrom);
+		}
+
 		System.setProperty("DB_URL", dbUrl);
 		System.setProperty("DB_USERNAME", dbUsername);
 		System.setProperty("DB_PASSWORD", dbPassword);
