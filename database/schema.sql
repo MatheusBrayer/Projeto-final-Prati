@@ -9,7 +9,9 @@ CREATE TABLE oficinas (
     cnpj VARCHAR(14) NOT NULL UNIQUE,
     telefone VARCHAR(20) NOT NULL,
     email VARCHAR(150) NOT NULL,
-    endereco VARCHAR(255)
+    endereco VARCHAR(255),
+    slug VARCHAR(150) UNIQUE,
+    ativo BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE clientes (
