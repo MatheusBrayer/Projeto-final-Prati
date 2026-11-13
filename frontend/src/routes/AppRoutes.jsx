@@ -26,7 +26,6 @@ function AppRoutes() {
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_SISTEMA"]} />}>
         <Route path="/admin" element={<Admin />} />
       </Route>
-      cd
       {/* Administrador da oficina */}
       <Route element={<ProtectedRoute perfisPermitidos={["ADM_OFICINA"]} />}>
         <Route path="/gestao" element={<Gestao />}>
