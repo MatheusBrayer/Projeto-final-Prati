@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.prati.backend.dto.OficinaPublicaResponse;
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.List;
+import com.prati.backend.dto.OficinaResumoResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,15 @@ public class OficinaService {
 
     private final OficinaRepository oficinaRepository;
     private final UsuarioRepository usuarioRepository;
+
+    @Transactional(readOnly = true)
+    public List<OficinaResumoResponse> listarTodas() {
+
+        return oficinaRepository.findAll()
+                .stream()
+                .map(OficinaResumoResponse::fromEntity)
+                .toList();
+    }
 
     @Transactional
     public Oficina cadastrar(OficinaCadastroRequest request) {

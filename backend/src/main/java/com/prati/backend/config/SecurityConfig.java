@@ -56,6 +56,10 @@ public class SecurityConfig {
                                 "/api/auth/primeiro-acesso/confirmar"
                         ).permitAll()
 
+                        // Somente ADM_SISTEMA pode listar todas as oficinas.
+                        .requestMatchers(HttpMethod.GET, "/api/oficinas")
+                        .hasRole("ADM_SISTEMA")
+
                         // Somente o administrador do sistema pode cadastrar oficinas.
                         .requestMatchers(HttpMethod.POST, "/api/oficinas")
                         .hasRole("ADM_SISTEMA")
