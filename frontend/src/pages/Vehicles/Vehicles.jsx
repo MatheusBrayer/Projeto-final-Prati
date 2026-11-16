@@ -1,117 +1,93 @@
 import { useEffect, useState } from "react";
-import { getVeiculos, getClientes } from "../../services/api";
+import { getClientes } from "../../services/api";
 
 export default function Vehicles() {
   const [veiculos, setVeiculos] = useState([]);
-  const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let ativo = true;
+
     async function fetchData() {
       try {
-        const [veiculosData, clientesData] = await Promise.all([
-          getVeiculos(),
-          getClientes(),
-        ]);
-        setVeiculos(veiculosData);
-        setClientes(clientesData);
+        const clientesData = await getClientes();
+        if (ativo) {
+          const lista = clientesData || [];
+          const comVeiculo = lista.filter(
+            (cli) => cli.placa_carro || cli.placa || cli.modelo_veiculo || cli.modelo || cli.veiculo
+          );
+          setVeiculos(comVeiculo);
+        }
       } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error("Erro ao carregar veículos:", error);
       } finally {
-        setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
+
     fetchData();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
-  const getNomeCliente = (clienteId) => {
-    const cliente = clientes.find((c) => c.id === clienteId);
-    return cliente ? cliente.nome : `Cliente #${clienteId}`;
-  };
-
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      {/* Cabeçalho da página */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
-            Gestão de Veículos
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Veículos cadastrados e vinculados aos clientes na base de dados.
-          </p>
-        </div>
+    <div style={{ padding: "32px", maxWidth: "1200px", margin: "0 auto" }}>
+      <div style={{ marginBottom: "24px" }}>
+        <h1 style={{ fontSize: "26px", fontWeight: "700", color: "#1e293b", margin: 0 }}>
+          Gestão de Veículos
+        </h1>
+        <p style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}>
+          Veículos cadastrados e vinculados aos clientes na base de dados.
+        </p>
       </div>
 
-      {/* Tabela com melhor espaçamento */}
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50/75">
-            <tr>
-              <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Placa
-              </th>
-              <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Marca
-              </th>
-              <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Modelo
-              </th>
-              <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Ano
-              </th>
-              <th className="px-8 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Cliente Proprietário
-              </th>
+      <div style={{ backgroundColor: "#ffffff", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <thead>
+            <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>ID Cliente</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Placa</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Modelo do Veículo</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Telefone</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Cliente Proprietário</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan="6"
-                  className="px-8 py-6 text-center text-sm text-gray-500"
-                >
+                <td colSpan="5" style={{ padding: "24px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>
                   Carregando veículos...
                 </td>
               </tr>
             ) : veiculos.length === 0 ? (
               <tr>
-                <td
-                  colSpan="6"
-                  className="px-8 py-6 text-center text-sm text-gray-500"
-                >
-                  Nenhum veículo cadastrado.
+                <td colSpan="5" style={{ padding: "24px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>
+                  Nenhum veículo cadastrado. Cadastre um cliente com placa e modelo na aba Clientes.
                 </td>
               </tr>
             ) : (
               veiculos.map((veiculo) => (
-                <tr
-                  key={veiculo.id}
-                  className="hover:bg-gray-50/50 transition-colors"
-                >
-                  <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {veiculo.id}
+                <tr key={veiculo.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                  <td style={{ padding: "16px", fontSize: "14px", fontWeight: "700", color: "#1e293b" }}>
+                    {String(veiculo.id).padStart(3, "0")}
                   </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-sm font-semibold text-gray-800">
-                    <span className="bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200">
-                      {veiculo.placa}
+                  <td style={{ padding: "16px", fontSize: "14px" }}>
+                    <span style={{ padding: "4px 10px", fontSize: "12px", fontWeight: "700", borderRadius: "9999px", backgroundColor: "#e0f2fe", color: "#0369a1" }}>
+                      {veiculo.placa || veiculo.placa_carro || veiculo.veiculo?.placa || "N/A"}
                     </span>
                   </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-600">
-                    {veiculo.marca}
+                  <td style={{ padding: "16px", fontSize: "14px", fontWeight: "600", color: "#334155" }}>
+                    {veiculo.modeloVeiculo || veiculo.modelo_veiculo || veiculo.modelo || veiculo.veiculo?.modelo || "Não informado"}
                   </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-600">
-                    {veiculo.modelo}
+                  <td style={{ padding: "16px", fontSize: "14px", color: "#64748b" }}>
+                    {veiculo.telefone || "-"}
                   </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-600">
-                    {veiculo.ano}
-                  </td>
-                  <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {getNomeCliente(veiculo.clienteId)}
+                  <td style={{ padding: "16px", fontSize: "14px", fontWeight: "600", color: "#334155" }}>
+                    {veiculo.nome || "-"}
                   </td>
                 </tr>
               ))

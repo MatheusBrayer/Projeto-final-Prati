@@ -7,16 +7,18 @@ export default function Clients() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [placa, setPlaca] = useState("");
+  const [modeloVeiculo, setModeloVeiculo] = useState("");
 
   async function fetchClientes() {
     try {
       const data = await getClientes();
-      setClientes(data);
+      setClientes(data || []);
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
     } finally {
@@ -30,9 +32,8 @@ export default function Clients() {
     async function carregarClientes() {
       try {
         const data = await getClientes();
-
         if (ativo) {
-          setClientes(data);
+          setClientes(data || []);
         }
       } catch (error) {
         console.error("Erro ao carregar clientes:", error);
@@ -55,27 +56,51 @@ export default function Clients() {
     try {
       const novoCliente = {
         nome,
+        cpf,
         telefone,
         email,
         cidade,
         estado,
         placa,
+        modeloVeiculo,
       };
 
       await createCliente(novoCliente);
 
       setIsModalOpen(false);
       setNome("");
+      setCpf("");
       setTelefone("");
       setEmail("");
       setCidade("");
       setEstado("");
       setPlaca("");
+      setModeloVeiculo("");
 
       fetchClientes();
     } catch (error) {
       console.error("Erro ao cadastrar cliente:", error);
-      alert("Erro ao cadastrar cliente.");
+      alert("Erro ao cadastrar cliente no servidor Java.");
+    }
+  }
+
+  async function handleDeleteCliente(id) {
+    if (window.confirm("Tem certeza que deseja excluir este cliente?")) {
+      try {
+        // Garantindo que a rota aponte para o endpoint padrão do Spring Boot
+        const response = await fetch(`http://localhost:8080/api/clientes/${id}`, {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          setClientes(clientes.filter((cliente) => cliente.id !== id));
+        } else {
+          alert("Erro ao excluir cliente no servidor.");
+        }
+      } catch (error) {
+        console.error("Erro na requisição de exclusão:", error);
+        alert("Erro de conexão ao tentar excluir.");
+      }
     }
   }
 
@@ -144,166 +169,81 @@ export default function Clients() {
                 borderBottom: "1px solid #e2e8f0",
               }}
             >
-              <th
-                style={{
-                  padding: "16px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                ID
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                Nome
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                Telefone
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                E-mail
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                Cidade/Estado
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                Placa do Carro
-              </th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>ID</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Nome</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>CPF</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Telefone</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Veículo / Placa</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase" }}>Cidade/Estado</th>
+              <th style={{ padding: "16px", fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", textAlign: "center" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan="6"
-                  style={{
-                    padding: "24px",
-                    textAlign: "center",
-                    color: "#64748b",
-                    fontSize: "14px",
-                  }}
-                >
+                <td colSpan="7" style={{ padding: "24px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>
                   Carregando...
                 </td>
               </tr>
             ) : clientes.length === 0 ? (
               <tr>
-                <td
-                  colSpan="6"
-                  style={{
-                    padding: "24px",
-                    textAlign: "center",
-                    color: "#64748b",
-                    fontSize: "14px",
-                  }}
-                >
+                <td colSpan="7" style={{ padding: "24px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>
                   Nenhum cliente cadastrado.
                 </td>
               </tr>
             ) : (
               clientes.map((cli) => (
                 <tr key={cli.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                  <td
-                    style={{
-                      padding: "16px",
-                      fontSize: "14px",
-                      fontWeight: "700",
-                      color: "#1e293b",
-                    }}
-                  >
+                  <td style={{ padding: "16px", fontSize: "14px", fontWeight: "700", color: "#1e293b" }}>
                     {String(cli.id).padStart(3, "0")}
                   </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      color: "#334155",
-                    }}
-                  >
+                  <td style={{ padding: "16px", fontSize: "14px", fontWeight: "600", color: "#334155" }}>
                     {cli.nome}
                   </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      fontSize: "14px",
-                      color: "#64748b",
-                    }}
-                  >
+                  <td style={{ padding: "16px", fontSize: "14px", color: "#64748b" }}>
+                    {cli.cpf || "-"}
+                  </td>
+                  <td style={{ padding: "16px", fontSize: "14px", color: "#64748b" }}>
                     {cli.telefone || "-"}
                   </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      fontSize: "14px",
-                      color: "#64748b",
-                    }}
-                  >
-                    {cli.email || "-"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      fontSize: "14px",
-                      color: "#64748b",
-                    }}
-                  >
-                    {cli.cidade ? `${cli.cidade}/${cli.estado || ""}` : "-"}
-                  </td>
                   <td style={{ padding: "16px", fontSize: "14px" }}>
+                    <div style={{ fontWeight: "600", color: "#334155" }}>
+                      {cli.modeloVeiculo || cli.modelo_veiculo || cli.modelo || "Não informado"}
+                    </div>
                     <span
                       style={{
-                        padding: "4px 10px",
-                        fontSize: "12px",
+                        display: "inline-block",
+                        marginTop: "2px",
+                        padding: "2px 8px",
+                        fontSize: "11px",
                         fontWeight: "700",
                         borderRadius: "9999px",
                         backgroundColor: "#e0f2fe",
                         color: "#0369a1",
                       }}
                     >
-                      {cli.placa || "N/A"}
+                      {cli.placa || cli.placa_carro || "N/A"}
                     </span>
+                  </td>
+                  <td style={{ padding: "16px", fontSize: "14px", color: "#64748b" }}>
+                    {cli.cidade ? `${cli.cidade}/${cli.estado || ""}` : "-"}
+                  </td>
+                  <td style={{ padding: "16px", fontSize: "14px", textAlign: "center" }}>
+                    <button
+                      onClick={() => handleDeleteCliente(cli.id)}
+                      style={{
+                        backgroundColor: "#fee2e2",
+                        color: "#991b1b",
+                        border: "none",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                      }}
+                    >
+                      Excluir
+                    </button>
                   </td>
                 </tr>
               ))
@@ -398,13 +338,13 @@ export default function Clients() {
                       textTransform: "uppercase",
                     }}
                   >
-                    Telefone
+                    CPF
                   </label>
                   <input
                     type="text"
-                    placeholder="(51) 99999-9999"
-                    value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
+                    placeholder="000.000.000-00"
+                    value={cpf}
+                    onChange={(e) => setCpf(e.target.value)}
                     style={{
                       width: "100%",
                       padding: "10px",
@@ -426,6 +366,43 @@ export default function Clients() {
                       textTransform: "uppercase",
                     }}
                   >
+                    Telefone
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="(51) 99999-9999"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      color: "#475569",
+                      marginBottom: "4px",
+                      textTransform: "uppercase",
+                    }}
+                  >
                     Placa do Carro
                   </label>
                   <input
@@ -434,6 +411,34 @@ export default function Clients() {
                     placeholder="Ex: BYY5D73"
                     value={placa}
                     onChange={(e) => setPlaca(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      color: "#475569",
+                      marginBottom: "4px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Modelo do Veículo
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Fuscão Preto"
+                    value={modeloVeiculo}
+                    onChange={(e) => setModeloVeiculo(e.target.value)}
                     style={{
                       width: "100%",
                       padding: "10px",
