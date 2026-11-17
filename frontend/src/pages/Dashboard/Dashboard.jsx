@@ -24,10 +24,13 @@ export default function Dashboard() {
   async function handleFinalizar(id) {
     try {
       // Ajustado para a rota padrão do Spring Boot (confirme se o controller usa /api/ordens ou /api/ordens-servico)
-      const response = await fetch(`http://localhost:8080/api/ordens/${id}/finalizar`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await fetch(
+        `http://localhost:8080/api/ordens/${id}/finalizar`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
 
       if (response.ok) {
         fetchOrdens();
@@ -42,16 +45,17 @@ export default function Dashboard() {
 
   // Cálculos das métricas compatíveis com os enums do Java (FINALIZADA ou CONLUIDA)
   const ordensEmAndamentoList = ordens.filter(
-    (os) => os.status !== "FINALIZADA" && os.status !== "CONLUIDA"
+    (os) => os.status !== "FINALIZADA" && os.status !== "CONLUIDA",
   );
-  
+
   const ordensFinalizadasList = ordens.filter(
-    (os) => os.status === "FINALIZADA" || os.status === "CONLUIDA"
+    (os) => os.status === "FINALIZADA" || os.status === "CONLUIDA",
   );
 
   const faturamentoTotal = ordensFinalizadasList.reduce(
-    (acc, os) => acc + (Number(os.valor || os.valorTotal || os.valor_total) || 0),
-    0
+    (acc, os) =>
+      acc + (Number(os.valor || os.valorTotal || os.valor_total) || 0),
+    0,
   );
 
   const ticketMedio =
@@ -73,7 +77,8 @@ export default function Dashboard() {
           Dashboard da Oficina
         </h1>
         <p style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}>
-          Acompanhe o status das ordens de serviço e o faturamento. Clique nos cards para ver os detalhes.
+          Acompanhe o status das ordens de serviço e o faturamento. Clique nos
+          cards para ver os detalhes.
         </p>
       </div>
 
@@ -103,11 +108,13 @@ export default function Dashboard() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-3px)";
-              e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+              e.currentTarget.style.boxShadow =
+                "0 10px 15px -3px rgba(0,0,0,0.1)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.05)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 6px -1px rgba(0,0,0,0.05)";
             }}
           >
             <span
@@ -146,11 +153,13 @@ export default function Dashboard() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-3px)";
-              e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+              e.currentTarget.style.boxShadow =
+                "0 10px 15px -3px rgba(0,0,0,0.1)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.05)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 6px -1px rgba(0,0,0,0.05)";
             }}
           >
             <span
@@ -189,11 +198,13 @@ export default function Dashboard() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-3px)";
-              e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+              e.currentTarget.style.boxShadow =
+                "0 10px 15px -3px rgba(0,0,0,0.1)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.05)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 6px -1px rgba(0,0,0,0.05)";
             }}
           >
             <span
@@ -232,11 +243,13 @@ export default function Dashboard() {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-3px)";
-              e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+              e.currentTarget.style.boxShadow =
+                "0 10px 15px -3px rgba(0,0,0,0.1)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.05)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 6px -1px rgba(0,0,0,0.05)";
             }}
           >
             <span
@@ -299,12 +312,19 @@ export default function Dashboard() {
                 paddingBottom: "12px",
               }}
             >
-              <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#1e293b", margin: 0 }}>
+              <h2
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "700",
+                  color: "#1e293b",
+                  margin: 0,
+                }}
+              >
                 {modalType === "andamento"
                   ? "Ordens de Serviço em Andamento"
                   : modalType === "finalizadas"
-                  ? "Ordens de Serviço Finalizadas"
-                  : "Detalhamento do Ticket Médio (TKM)"}
+                    ? "Ordens de Serviço Finalizadas"
+                    : "Detalhamento do Ticket Médio (TKM)"}
               </h2>
               <button
                 onClick={() => setModalType(null)}
@@ -333,7 +353,10 @@ export default function Dashboard() {
                 }}
               >
                 <p style={{ margin: 0, fontSize: "14px", color: "#334155" }}>
-                  <strong>Cálculo do Ticket Médio:</strong> Faturamento Total (<strong>R$ {faturamentoTotal.toFixed(2)}</strong>) dividido pelo total de ordens finalizadas (<strong>{ordensFinalizadasList.length}</strong>).
+                  <strong>Cálculo do Ticket Médio:</strong> Faturamento Total (
+                  <strong>R$ {faturamentoTotal.toFixed(2)}</strong>) dividido
+                  pelo total de ordens finalizadas (
+                  <strong>{ordensFinalizadasList.length}</strong>).
                 </p>
               </div>
             )}
@@ -343,19 +366,85 @@ export default function Dashboard() {
               ? ordensEmAndamentoList
               : ordensFinalizadasList
             ).length === 0 ? (
-              <p style={{ textAlign: "center", color: "#64748b", padding: "24px" }}>
+              <p
+                style={{
+                  textAlign: "center",
+                  color: "#64748b",
+                  padding: "24px",
+                }}
+              >
                 Nenhuma ordem encontrada nesta categoria.
               </p>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  textAlign: "left",
+                }}
+              >
                 <thead>
-                  <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                    <th style={{ padding: "12px", fontSize: "12px", color: "#64748b" }}>OS #</th>
-                    <th style={{ padding: "12px", fontSize: "12px", color: "#64748b" }}>Veículo</th>
-                    <th style={{ padding: "12px", fontSize: "12px", color: "#64748b" }}>Cliente</th>
-                    <th style={{ padding: "12px", fontSize: "12px", color: "#64748b" }}>Descrição</th>
-                    <th style={{ padding: "12px", fontSize: "12px", color: "#64748b" }}>Valor</th>
-                    <th style={{ padding: "12px", fontSize: "12px", color: "#64748b", textAlign: "center" }}>Ação</th>
+                  <tr
+                    style={{
+                      backgroundColor: "#f8fafc",
+                      borderBottom: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <th
+                      style={{
+                        padding: "12px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                      }}
+                    >
+                      OS #
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Veículo
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Cliente
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Descrição
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                      }}
+                    >
+                      Valor
+                    </th>
+                    <th
+                      style={{
+                        padding: "12px",
+                        fontSize: "12px",
+                        color: "#64748b",
+                        textAlign: "center",
+                      }}
+                    >
+                      Ação
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -363,25 +452,57 @@ export default function Dashboard() {
                     ? ordensEmAndamentoList
                     : ordensFinalizadasList
                   ).map((os) => (
-                    <tr key={os.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                      <td style={{ padding: "12px", fontWeight: "700", color: "#1e293b" }}>
+                    <tr
+                      key={os.id}
+                      style={{ borderBottom: "1px solid #e2e8f0" }}
+                    >
+                      <td
+                        style={{
+                          padding: "12px",
+                          fontWeight: "700",
+                          color: "#1e293b",
+                        }}
+                      >
                         {String(os.id).padStart(3, "0")}
                       </td>
                       <td style={{ padding: "12px" }}>
                         {/* Lida com propriedades do Java (modelo/placa ou objeto veiculo) */}
-                        <div style={{ fontWeight: "600" }}>{os.veiculo?.modelo || os.modelo || "Veículo"}</div>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>{os.veiculo?.placa || os.placa || ""}</div>
+                        <div style={{ fontWeight: "600" }}>
+                          {os.veiculo?.modelo || os.modelo || "Veículo"}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+                          {os.veiculo?.placa || os.placa || ""}
+                        </div>
                       </td>
                       <td style={{ padding: "12px" }}>
                         {/* Lida com propriedades do Java (cliente ou objeto cliente) */}
-                        <div style={{ fontWeight: "600" }}>{os.cliente?.nome || os.cliente || "Cliente"}</div>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>{os.cliente?.telefone || os.telefone || ""}</div>
+                        <div style={{ fontWeight: "600" }}>
+                          {os.cliente?.nome || os.cliente || "Cliente"}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+                          {os.cliente?.telefone || os.telefone || ""}
+                        </div>
                       </td>
-                      <td style={{ padding: "12px", color: "#64748b", maxWidth: "180px" }}>
+                      <td
+                        style={{
+                          padding: "12px",
+                          color: "#64748b",
+                          maxWidth: "180px",
+                        }}
+                      >
                         {os.descricao || os.problema || "Sem descrição"}
                       </td>
-                      <td style={{ padding: "12px", fontWeight: "700", color: "#16a34a" }}>
-                        R$ {Number(os.valor || os.valorTotal || os.valor_total || 0).toFixed(2)}
+                      <td
+                        style={{
+                          padding: "12px",
+                          fontWeight: "700",
+                          color: "#16a34a",
+                        }}
+                      >
+                        R${" "}
+                        {Number(
+                          os.valor || os.valorTotal || os.valor_total || 0,
+                        ).toFixed(2)}
                       </td>
                       <td style={{ padding: "12px", textAlign: "center" }}>
                         {modalType === "andamento" ? (

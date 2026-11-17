@@ -68,3 +68,31 @@ export async function realizarLogin(email, senha) {
 
   return data;
 }
+
+export async function verificarCodigoPrimeiroAcesso(email, codigo) {
+  const response = await fetch(
+    `${API_URL}/api/auth/primeiro-acesso/verificar`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        codigo,
+      }),
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.erro ||
+        data.mensagem ||
+        "Código inválido ou expirado. Tente novamente.",
+    );
+  }
+
+  return data;
+}
