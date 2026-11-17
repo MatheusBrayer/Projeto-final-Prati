@@ -187,6 +187,7 @@ class SecurityConfigIntegrationTest {
         oficina.setCnpj("12345678000195");
         oficina.setTelefone("51999999999");
         oficina.setEmail("oficina@teste.com");
+        oficina.setAtivo(true); // Oficina ativa para permitir autenticação
 
         oficina = oficinaRepository.save(oficina);
 

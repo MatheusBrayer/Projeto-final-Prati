@@ -47,4 +47,12 @@ public class OficinaController {
     public List<OficinaResumoResponse> listarTodas() {
         return oficinaService.listarTodas();
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void excluirOficina(@PathVariable Long id) {
+
+        oficinaService.excluirOficina(id);
+    }
+
 }

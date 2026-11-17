@@ -7,8 +7,7 @@ import com.prati.backend.entity.Usuario;
 import com.prati.backend.enums.Perfil;
 import com.prati.backend.exception.ConflitoCadastroException;
 import com.prati.backend.exception.RecursoNaoEncontradoException;
-import com.prati.backend.repository.OficinaRepository;
-import com.prati.backend.repository.UsuarioRepository;
+import com.prati.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +23,9 @@ public class OficinaService {
 
     private final OficinaRepository oficinaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final OrdemServicoRepository ordemServicoRepository;
+    private final VeiculoRepository veiculoRepository;
+    private final ClienteOficinaRepository clienteOficinaRepository;
 
     @Transactional(readOnly = true)
     public List<OficinaResumoResponse> listarTodas() {
@@ -137,4 +139,33 @@ public class OficinaService {
                 oficina.getSlug()
         );
     }
+
+
+    @Transactional
+    public void excluirOficina(Long id) {
+
+        Oficina oficina = oficinaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Oficina não encontrada."
+                ));
+
+        // 1. Excluir ordens de serviço
+        ordemServicoRepository.deleteByOficina_Id(id);
+
+        // 2. Excluir veículos
+        veiculoRepository.deleteByOficina_Id(id);
+
+        // 3. Excluir vínculos entre clientes e oficina
+        clienteOficinaRepository.deleteByOficina_Id(id);
+
+        // 4. Excluir administradores da oficina
+        usuarioRepository.deleteByOficina_IdAndPerfil(
+                id,
+                Perfil.ADM_OFICINA
+        );
+
+        // 5. Excluir a oficina
+        oficinaRepository.delete(oficina);
+    }
+
 }

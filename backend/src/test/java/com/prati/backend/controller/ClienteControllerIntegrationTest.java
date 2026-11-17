@@ -75,6 +75,7 @@ class ClienteControllerIntegrationTest {
         oficina.setTelefone("51999999999");
         oficina.setEmail("oficina@email.com");
         oficina.setEndereco("Rua de Teste");
+        oficina.setAtivo(true); // Permite autenticação do ADM_OFICINA nos testes
 
         oficina = oficinaRepository.save(oficina);
 

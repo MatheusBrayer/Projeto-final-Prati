@@ -8,20 +8,15 @@ const API_URL = (
 const obterToken = () => {
   try {
     const sessao = sessionStorage.getItem("autogestao_sessao");
-
-    if (!sessao) {
-      return null;
-    }
+    if (!sessao) return null;
 
     const dados = JSON.parse(sessao);
-
     return dados.token || null;
   } catch {
     return null;
   }
 };
 
-// Função independente do React: apenas consulta a API.
 async function buscarOficinas(signal) {
   const token = obterToken();
 
@@ -110,6 +105,12 @@ const Icon = ({ name, size = 20 }) => {
         <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
       </>
     ),
+    trash: (
+      <>
+        <path d="M3 6h18M8 6V4h8v2M5 6l1 15h12l1-15" />
+        <path d="M10 10v7M14 10v7" />
+      </>
+    ),
   };
 
   return (
@@ -135,14 +136,15 @@ function Admin() {
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState("todas");
+
+  // modal: { tipo: "ativacao" | "exclusao", oficina }
   const [modal, setModal] = useState(null);
+  const [confirmacaoExclusao, setConfirmacaoExclusao] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [aviso, setAviso] = useState("");
 
   const requisicaoRef = useRef(null);
 
-  // Carregamento inicial: as atualizações acontecem
-  // nos callbacks assíncronos da requisição.
   useEffect(() => {
     const controller = new AbortController();
     requisicaoRef.current = controller;
@@ -156,12 +158,10 @@ function Admin() {
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
-
         setErro(error.message);
       })
       .finally(() => {
         if (controller.signal.aborted) return;
-
         setCarregando(false);
       });
 
@@ -170,7 +170,6 @@ function Admin() {
     };
   }, []);
 
-  // Atualização manual, iniciada pelo clique do usuário.
   const atualizarOficinas = useCallback(async () => {
     requisicaoRef.current?.abort();
 
@@ -188,7 +187,6 @@ function Admin() {
       setOficinas(dados);
     } catch (error) {
       if (controller.signal.aborted) return;
-
       setErro(error.message);
     } finally {
       if (!controller.signal.aborted) {
@@ -239,8 +237,30 @@ function Admin() {
     }
   };
 
+  const abrirModalAtivacao = (oficina) => {
+    setErro("");
+    setAviso("");
+    setModal({ tipo: "ativacao", oficina });
+  };
+
+  const abrirModalExclusao = (oficina) => {
+    setErro("");
+    setAviso("");
+    setConfirmacaoExclusao("");
+    setModal({ tipo: "exclusao", oficina });
+  };
+
+  const fecharModal = () => {
+    if (salvando) return;
+
+    setModal(null);
+    setConfirmacaoExclusao("");
+  };
+
   const alterarAtivacao = async () => {
-    if (!modal || salvando) return;
+    if (!modal || modal.tipo !== "ativacao" || salvando) return;
+
+    const oficinaSelecionada = modal.oficina;
 
     setSalvando(true);
     setErro("");
@@ -252,10 +272,10 @@ function Admin() {
         throw new Error("Sessão não encontrada. Faça login novamente.");
       }
 
-      const novoStatus = !modal.ativo;
+      const novoStatus = !oficinaSelecionada.ativo;
 
       const response = await fetch(
-        `${API_URL}/api/oficinas/${modal.id}/ativacao`,
+        `${API_URL}/api/oficinas/${oficinaSelecionada.id}/ativacao`,
         {
           method: "PATCH",
           headers: {
@@ -278,17 +298,18 @@ function Admin() {
         throw new Error("Não foi possível alterar a situação da oficina.");
       }
 
-      // Atualiza a interface após confirmação do backend.
       setOficinas((anteriores) =>
         anteriores.map((oficina) =>
-          oficina.id === modal.id ? { ...oficina, ativo: novoStatus } : oficina,
+          oficina.id === oficinaSelecionada.id
+            ? { ...oficina, ativo: novoStatus }
+            : oficina,
         ),
       );
 
       setAviso(
         novoStatus
-          ? `Oficina "${modal.nome}" ativada com sucesso.`
-          : `Oficina "${modal.nome}" pausada com sucesso.`,
+          ? `Oficina "${oficinaSelecionada.nome}" ativada com sucesso.`
+          : `Oficina "${oficinaSelecionada.nome}" pausada com sucesso.`,
       );
 
       setModal(null);
@@ -299,6 +320,80 @@ function Admin() {
       setSalvando(false);
     }
   };
+
+  // Exclusão definitiva da oficina.
+  const excluirOficina = async () => {
+    if (
+      !modal ||
+      modal.tipo !== "exclusao" ||
+      salvando ||
+      confirmacaoExclusao.trim() !== "EXCLUIR"
+    ) {
+      return;
+    }
+
+    const oficinaSelecionada = modal.oficina;
+
+    setSalvando(true);
+    setErro("");
+
+    try {
+      const token = obterToken();
+
+      if (!token) {
+        throw new Error("Sessão não encontrada. Faça login novamente.");
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/oficinas/${oficinaSelecionada.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Sua sessão expirou. Faça login novamente.");
+        }
+
+        if (response.status === 403) {
+          throw new Error("Você não tem permissão para excluir oficinas.");
+        }
+
+        if (response.status === 404) {
+          throw new Error(
+            "Esta oficina não foi encontrada. Atualize a listagem.",
+          );
+        }
+
+        throw new Error("Não foi possível excluir a oficina. Tente novamente.");
+      }
+
+      // Remove da listagem apenas após sucesso do backend.
+      setOficinas((anteriores) =>
+        anteriores.filter((oficina) => oficina.id !== oficinaSelecionada.id),
+      );
+
+      setAviso(
+        `Oficina "${oficinaSelecionada.nome}" excluída definitivamente.`,
+      );
+
+      setModal(null);
+      setConfirmacaoExclusao("");
+    } catch (error) {
+      setErro(error.message);
+      setModal(null);
+      setConfirmacaoExclusao("");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const modalExclusao = modal?.tipo === "exclusao";
+  const oficinaModal = modal?.oficina;
 
   return (
     <div className="admin-page">
@@ -333,6 +428,7 @@ function Admin() {
           </div>
 
           <button
+            type="button"
             className="admin-btn admin-btn-primary"
             onClick={() => window.location.assign("/admin/oficinas/nova")}
           >
@@ -414,7 +510,7 @@ function Admin() {
               type="button"
               className="admin-btn admin-btn-outline"
               onClick={atualizarOficinas}
-              disabled={carregando}
+              disabled={carregando || salvando}
             >
               <Icon name="refresh" size={17} />
               Atualizar
@@ -535,20 +631,42 @@ function Admin() {
                       </a>
                     </div>
 
-                    <button
-                      type="button"
-                      className={`admin-btn ${
-                        oficina.ativo ? "admin-btn-danger" : "admin-btn-primary"
-                      }`}
-                      onClick={() => setModal(oficina)}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                      }}
                     >
-                      <Icon
-                        name={oficina.ativo ? "pause" : "check"}
-                        size={17}
-                      />
+                      <button
+                        type="button"
+                        className={`admin-btn ${
+                          oficina.ativo
+                            ? "admin-btn-danger"
+                            : "admin-btn-primary"
+                        }`}
+                        onClick={() => abrirModalAtivacao(oficina)}
+                        disabled={salvando}
+                      >
+                        <Icon
+                          name={oficina.ativo ? "pause" : "check"}
+                          size={17}
+                        />
 
-                      {oficina.ativo ? "Pausar acesso" : "Ativar oficina"}
-                    </button>
+                        {oficina.ativo ? "Pausar acesso" : "Ativar oficina"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-danger"
+                        onClick={() => abrirModalExclusao(oficina)}
+                        disabled={salvando}
+                        title="Excluir definitivamente a oficina"
+                      >
+                        <Icon name="trash" size={17} />
+                        Excluir
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -557,12 +675,12 @@ function Admin() {
         </section>
       </main>
 
-      {modal && (
+      {modal && oficinaModal && (
         <div
           className="admin-modal-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !salvando) {
-              setModal(null);
+            if (event.target === event.currentTarget) {
+              fecharModal();
             }
           }}
         >
@@ -572,49 +690,154 @@ function Admin() {
             aria-modal="true"
             aria-labelledby="admin-modal-title"
           >
-            <div
-              className={`admin-modal-icon ${
-                modal.ativo ? "admin-modal-warning" : "admin-modal-success"
-              }`}
-            >
-              <Icon name={modal.ativo ? "pause" : "check"} size={26} />
-            </div>
+            {modalExclusao ? (
+              <>
+                <div className="admin-modal-icon admin-modal-warning">
+                  <Icon name="trash" size={26} />
+                </div>
 
-            <h2 id="admin-modal-title">
-              {modal.ativo ? "Pausar acesso da oficina?" : "Ativar oficina?"}
-            </h2>
+                <h2 id="admin-modal-title">Excluir oficina definitivamente?</h2>
 
-            <p>
-              {modal.ativo
-                ? `A oficina "${modal.nome}" terá seu acesso às funcionalidades protegidas bloqueado.`
-                : `Deseja liberar o acesso da oficina "${modal.nome}" à plataforma?`}
-            </p>
+                <p>
+                  Você está prestes a excluir a oficina{" "}
+                  <strong>"{oficinaModal.nome}"</strong>.
+                </p>
 
-            <div className="admin-modal-actions">
-              <button
-                type="button"
-                className="admin-btn admin-btn-outline"
-                onClick={() => setModal(null)}
-                disabled={salvando}
-              >
-                Cancelar
-              </button>
+                <div
+                  role="alert"
+                  style={{
+                    marginTop: "16px",
+                    marginBottom: "16px",
+                    padding: "14px",
+                    border: "1px solid #dc2626",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <strong>Atenção: esta ação é irreversível.</strong>
 
-              <button
-                type="button"
-                className={`admin-btn ${
-                  modal.ativo ? "admin-btn-danger" : "admin-btn-primary"
-                }`}
-                onClick={alterarAtivacao}
-                disabled={salvando}
-              >
-                {salvando
-                  ? "Salvando..."
-                  : modal.ativo
-                    ? "Confirmar pausa"
-                    : "Confirmar ativação"}
-              </button>
-            </div>
+                  <p style={{ marginTop: "8px" }}>
+                    Serão excluídos permanentemente:
+                  </p>
+
+                  <ul style={{ paddingLeft: "20px", marginTop: "8px" }}>
+                    <li>O cadastro da oficina</li>
+                    <li>Os administradores vinculados à oficina</li>
+                    <li>Os veículos cadastrados nessa oficina</li>
+                    <li>As ordens de serviço dessa oficina</li>
+                    <li>Os vínculos dos clientes com essa oficina</li>
+                  </ul>
+
+                  <p style={{ marginTop: "8px" }}>
+                    Os clientes globais e os dados de outras oficinas serão
+                    preservados.
+                  </p>
+                </div>
+
+                <p>
+                  Para confirmar, digite <strong>EXCLUIR</strong>:
+                </p>
+
+                <input
+                  type="text"
+                  value={confirmacaoExclusao}
+                  onChange={(event) =>
+                    setConfirmacaoExclusao(event.target.value)
+                  }
+                  placeholder="Digite EXCLUIR"
+                  aria-label="Confirmação de exclusão"
+                  autoComplete="off"
+                  disabled={salvando}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    marginTop: "10px",
+                    marginBottom: "16px",
+                    borderRadius: "8px",
+                    border: "1px solid #94a3b8",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                <div className="admin-modal-actions">
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-outline"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-danger"
+                    onClick={excluirOficina}
+                    disabled={
+                      salvando || confirmacaoExclusao.trim() !== "EXCLUIR"
+                    }
+                  >
+                    <Icon name="trash" size={17} />
+
+                    {salvando ? "Excluindo..." : "Excluir definitivamente"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className={`admin-modal-icon ${
+                    oficinaModal.ativo
+                      ? "admin-modal-warning"
+                      : "admin-modal-success"
+                  }`}
+                >
+                  <Icon
+                    name={oficinaModal.ativo ? "pause" : "check"}
+                    size={26}
+                  />
+                </div>
+
+                <h2 id="admin-modal-title">
+                  {oficinaModal.ativo
+                    ? "Pausar acesso da oficina?"
+                    : "Ativar oficina?"}
+                </h2>
+
+                <p>
+                  {oficinaModal.ativo
+                    ? `A oficina "${oficinaModal.nome}" terá seu acesso às funcionalidades protegidas bloqueado.`
+                    : `Deseja liberar o acesso da oficina "${oficinaModal.nome}" à plataforma?`}
+                </p>
+
+                <div className="admin-modal-actions">
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-outline"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`admin-btn ${
+                      oficinaModal.ativo
+                        ? "admin-btn-danger"
+                        : "admin-btn-primary"
+                    }`}
+                    onClick={alterarAtivacao}
+                    disabled={salvando}
+                  >
+                    {salvando
+                      ? "Salvando..."
+                      : oficinaModal.ativo
+                        ? "Confirmar pausa"
+                        : "Confirmar ativação"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
