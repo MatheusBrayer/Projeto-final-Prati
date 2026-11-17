@@ -3,6 +3,7 @@ package com.prati.backend.service;
 
 import com.prati.backend.dto.LoginRequest;
 import com.prati.backend.dto.LoginResponse;
+import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
 import com.prati.backend.exception.AutenticacaoException;
 import com.prati.backend.repository.UsuarioRepository;
@@ -31,23 +32,31 @@ public class AuthService {
     private final UsuarioService usuarioService;
 
 
-    public LoginResponse login(LoginRequest request) {
 
-        Usuario usuario = usuarioRepository
-                .findByEmail(request.getEmail())
+    public LoginResponse login(LoginRequest request) {
+        Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AutenticacaoException(
                         "E-mail ou senha inválidos."
                 ));
 
+        // Valida a conta e as credenciais.
         if (!Boolean.TRUE.equals(usuario.getAtivo())
                 || usuario.getSenha() == null
-                || !senhaService.comparar(
-                request.getSenha(),
-                usuario.getSenha()
-        )) {
-            throw new AutenticacaoException(
-                    "E-mail ou senha inválidos."
-            );
+                || !senhaService.comparar(request.getSenha(), usuario.getSenha())) {
+            throw new AutenticacaoException("E-mail ou senha inválidos.");
+        }
+
+        // Impede o login de administradores vinculados
+        // a oficinas inativas ou inexistentes.
+        if (usuario.getPerfil() == Perfil.ADM_OFICINA) {
+            Oficina oficina = usuario.getOficina();
+
+            if (oficina == null || !oficina.isAtivo()) {
+                throw new AutenticacaoException(
+                        "O acesso à sua oficina está temporariamente suspenso. "
+                                + "Entre em contato com o administrador da plataforma."
+                );
+            }
         }
 
         String token = jwtService.gerarToken(usuario.getEmail());
@@ -60,6 +69,7 @@ public class AuthService {
                 usuario.getPerfil()
         );
     }
+
 
 
 
