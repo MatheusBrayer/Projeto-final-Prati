@@ -10,4 +10,6 @@ public interface ClienteOficinaRepository extends JpaRepository<ClienteOficina, 
     boolean existsByClienteIdAndOficinaId(Long clienteId, Long oficinaId);
 
     List<ClienteOficina> findByClienteId(Long clienteId);
+
+    long deleteByOficina_Id(Long oficinaId);
 }

@@ -68,6 +68,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/oficinas/*/ativacao")
                         .hasRole("ADM_SISTEMA")
 
+                        // Somente o administrador do sistema pode excluir oficinas.
+                        .requestMatchers(HttpMethod.DELETE, "/api/oficinas/*")
+                        .hasRole("ADM_SISTEMA")
 
                         // Somente administradores de oficinas ativas podem gerenciar clientes.
                         .requestMatchers(
