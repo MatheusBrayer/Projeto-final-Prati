@@ -1,7 +1,9 @@
 
 package com.prati.backend.security;
 
+import com.prati.backend.entity.Oficina;
 import com.prati.backend.entity.Usuario;
+import com.prati.backend.enums.Perfil;
 import com.prati.backend.repository.UsuarioRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -9,17 +11,15 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.prati.backend.enums.Perfil;
-import org.springframework.security.core.GrantedAuthority;
-
-import java.util.ArrayList;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,45 +61,58 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Optional<Usuario> usuarioOptional =
                         usuarioRepository.findByEmail(email);
 
-                if (usuarioOptional.isPresent()
-                        && Boolean.TRUE.equals(usuarioOptional.get().getAtivo())) {
+                if (usuarioOptional.isPresent()) {
 
                     Usuario usuario = usuarioOptional.get();
 
-                    // Autoridades do usuário.
-                    List<GrantedAuthority> authorities = new ArrayList<>();
+                    // Verifica se a conta do usuário está ativa.
+                    boolean usuarioAtivo =
+                            Boolean.TRUE.equals(usuario.getAtivo());
 
-                    // Adiciona a autoridade correspondente ao perfil.
-                    authorities.add(
-                            new SimpleGrantedAuthority(
-                                    "ROLE_" + usuario.getPerfil().name()
-                            )
-                    );
+                    // Verifica se a oficina permite acesso.
+                    boolean oficinaPermitida = true;
 
-                    // Adiciona a autoridade quando a oficina estiver ativa.
-                    if (usuario.getPerfil() == Perfil.ADM_OFICINA
-                            && usuario.getOficina() != null
-                            && usuario.getOficina().isAtivo()) {
+                    if (usuario.getPerfil() == Perfil.ADM_OFICINA) {
+                        Oficina oficina = usuario.getOficina();
 
-                        authorities.add(
-                                new SimpleGrantedAuthority("OFICINA_ATIVA")
-                        );
+                        oficinaPermitida =
+                                oficina != null && oficina.isAtivo();
                     }
 
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    email,
-                                    null,
-                                    authorities
+                    // Só autentica se o usuário e sua oficina
+                    // estiverem habilitados.
+                    if (usuarioAtivo && oficinaPermitida) {
+
+                        List<GrantedAuthority> authorities =
+                                new ArrayList<>();
+
+                        authorities.add(
+                                new SimpleGrantedAuthority(
+                                        "ROLE_" + usuario.getPerfil().name()
+                                )
+                        );
+
+                        if (usuario.getPerfil() == Perfil.ADM_OFICINA) {
+                            authorities.add(
+                                    new SimpleGrantedAuthority("OFICINA_ATIVA")
                             );
+                        }
 
-                    authentication.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request)
-                    );
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(
+                                        email,
+                                        null,
+                                        authorities
+                                );
 
-                    SecurityContextHolder.getContext()
-                            .setAuthentication(authentication);
+                        authentication.setDetails(
+                                new WebAuthenticationDetailsSource()
+                                        .buildDetails(request)
+                        );
+
+                        SecurityContextHolder.getContext()
+                                .setAuthentication(authentication);
+                    }
                 }
             }
 
@@ -109,5 +122,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
-
 }
