@@ -53,6 +53,7 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/auth/login",
                                 "/api/auth/primeiro-acesso/solicitar",
+                                "/api/auth/primeiro-acesso/verificar",
                                 "/api/auth/primeiro-acesso/confirmar"
                         ).permitAll()
 

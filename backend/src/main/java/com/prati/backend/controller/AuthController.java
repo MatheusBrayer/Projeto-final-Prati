@@ -1,14 +1,11 @@
 
 package com.prati.backend.controller;
 
-import com.prati.backend.dto.LoginRequest;
-import com.prati.backend.dto.LoginResponse;
+import com.prati.backend.dto.*;
 import com.prati.backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.prati.backend.dto.PrimeiroAcessoRequest;
-import com.prati.backend.dto.ConfirmarPrimeiroAcessoRequest;
 import jakarta.validation.Valid;
 
 import java.util.Map;
@@ -52,5 +49,18 @@ public class AuthController {
                 "Primeiro acesso realizado com sucesso."
         ));
     }
+
+
+    @PostMapping("/primeiro-acesso/verificar")
+    public ResponseEntity<Map<String, String>> verificarCodigo(
+            @Valid @RequestBody VerificarCodigoRequest request
+    ) {
+        authService.verificarCodigoPrimeiroAcesso(request);
+
+        return ResponseEntity.ok(
+                Map.of("mensagem", "Código verificado com sucesso.")
+        );
+    }
+
 }
 

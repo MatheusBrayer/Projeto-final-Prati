@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./PrimeiroAcesso.css";
 import {
   solicitarPrimeiroAcesso,
+  verificarCodigoPrimeiroAcesso,
   confirmarPrimeiroAcesso,
 } from "../../services/authService.js";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -62,9 +63,22 @@ function PrimeiroAcesso() {
     }
   }
 
-  function avancarEtapa(event) {
+  async function avancarEtapa(event) {
     event.preventDefault();
-    setEtapa((etapaAtual) => etapaAtual + 1);
+
+    setErro("");
+    setMensagem("");
+    setCarregando(true);
+
+    try {
+      await verificarCodigoPrimeiroAcesso(email, codigo);
+
+      setEtapa(3);
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setCarregando(false);
+    }
   }
 
   function voltarEtapa() {
@@ -179,12 +193,21 @@ function PrimeiroAcesso() {
                 name="codigo"
                 placeholder="Digite o código recebido"
                 required
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                title="Informe os 6 números do código."
                 value={codigo}
                 onChange={(event) => setCodigo(event.target.value)}
               />
             </div>
 
             {mensagem && <p>{mensagem}</p>}
+            {erro && (
+              <p role="alert" style={{ color: "var(--color-danger)" }}>
+                {erro}
+              </p>
+            )}
 
             <button
               type="button"
@@ -194,8 +217,12 @@ function PrimeiroAcesso() {
               Voltar
             </button>
 
-            <button type="submit" className="primeiro-acesso-button">
-              Continuar
+            <button
+              type="submit"
+              className="primeiro-acesso-button"
+              disabled={carregando}
+            >
+              {carregando ? "Verificando..." : "Continuar"}
             </button>
           </form>
         )}

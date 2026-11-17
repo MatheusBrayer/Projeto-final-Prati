@@ -16,8 +16,7 @@ import com.prati.backend.repository.ClienteRepository;
 import com.prati.backend.dto.ConfirmarPrimeiroAcessoRequest;
 import org.springframework.transaction.annotation.Transactional;
 import com.prati.backend.enums.Perfil;
-
-import java.util.Locale;
+import java.util.Locale;import com.prati.backend.dto.VerificarCodigoRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -181,5 +180,28 @@ public class AuthService {
             );
         }
     }
+
+
+    @Transactional(noRollbackFor = AutenticacaoException.class)
+    public void verificarCodigoPrimeiroAcesso(
+            VerificarCodigoRequest request
+    ) {
+        String email = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        boolean codigoValido = codigoVerificacaoService.verificarCodigo(
+                email,
+                request.getCodigo(),
+                FinalidadeCodigoVerificacao.PRIMEIRO_ACESSO
+        );
+
+        if (!codigoValido) {
+            throw new AutenticacaoException(
+                    "Código inválido ou expirado. Verifique e tente novamente."
+            );
+        }
+    }
+
 
 }

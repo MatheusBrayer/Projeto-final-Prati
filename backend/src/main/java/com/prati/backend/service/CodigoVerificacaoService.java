@@ -141,4 +141,55 @@ public class CodigoVerificacaoService {
 
         return true;
     }
+
+
+    @Transactional
+    public boolean verificarCodigo(
+            String email,
+            String codigoInformado,
+            FinalidadeCodigoVerificacao finalidade
+    ) {
+        CodigoVerificacao registro = codigoVerificacaoRepository
+                .findFirstByEmailAndFinalidadeAndUtilizadoFalseOrderByCriadoEmDesc(
+                        email,
+                        finalidade
+                )
+                .orElse(null);
+
+        if (registro == null) {
+            return false;
+        }
+
+        LocalDateTime agora = LocalDateTime.now();
+
+        // Verifica se o código expirou ou excedeu as tentativas.
+        if (!agora.isBefore(registro.getExpiraEm())
+                || registro.getTentativas() >= MAX_TENTATIVAS) {
+
+            registro.setUtilizado(true);
+            codigoVerificacaoRepository.save(registro);
+            return false;
+        }
+
+        // Compara o código informado com o hash armazenado.
+        boolean codigoCorreto = senhaService.comparar(
+                codigoInformado,
+                registro.getCodigoHash()
+        );
+
+        if (!codigoCorreto) {
+            registro.setTentativas(registro.getTentativas() + 1);
+
+            if (registro.getTentativas() >= MAX_TENTATIVAS) {
+                registro.setUtilizado(true);
+            }
+
+            codigoVerificacaoRepository.save(registro);
+            return false;
+        }
+
+        // Código válido, mas NÃO é consumido nesta etapa.
+        return true;
+    }
+
 }
